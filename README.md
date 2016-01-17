@@ -42,35 +42,31 @@ Created from the Splunk modular input examples.
 ### DefaultQueueResponseHandler
 * Basic handler for MQ messages.
 * Supported options: 
-```
- include_payload=false/true - Include the message payload in the event.  Default: true
- use_mqmd_puttime=false/true - Use the message put time as the event time.  Default: true 
- include_mqmd=false/true - Include the MQMD in the event.  Default: false 
- pretty_mqmd=false/true - Use textual descriptions for MQMD values. Default: true
- make_mqmd_printable=false/true - Escape non text values in the MQMD.  Default: true 
- payload_limit=1024 - How many bytes of the payload to include in the splunk event.  Default: 1024 (1kb)  
- encode_payload=false/base64/hexbinary - Encode the payload.   Default: false 
- make_payload_printable=false/true - Escape non text values in the payload.  Default: true
-```
+   * `include_payload=false/true` - Include the message payload in the event.  Default: true
+   * `use_mqmd_puttime=false/true` - Use the message put time as the event time.  Default: true 
+   * `include_mqmd=false/true` - Include the MQMD in the event.  Default: false 
+   * `pretty_mqmd=false/true` - Use textual descriptions for MQMD values. Default: true
+   * `make_mqmd_printable=false/true` - Escape non text values in the MQMD.  Default: true 
+   * `payload_limit=1024` - How many bytes of the payload to include in the splunk event.  Default: 1024 (1kb)  
+   * `encode_payload=false/base64/hexbinary` - Encode the payload.   Default: false 
+   * `make_payload_printable=false/true` - Escape non text values in the payload.  Default: true
+
 ### DefaultChannelStatusResponseHandler
 * Default handler for Channel Status Statistics.
 * Supported options:
-```
- include_zero_values=true/false - Include values that are set to zero or default values in the event.  Default: false
- textual_values=true/false - Include the textual description for channel status parameters.  Default: true
-```
+  * `include_zero_values=true/false` - Include values that are set to zero or default values in the event.  Default: false
+  * `textual_values=true/false` - Include the textual description for channel status parameters.  Default: true
 
 ### BrokerEventResponseHandler
 * IBM Message Broker Monitoring event handler.   
 * Parses a Message Broker monitoring event and extracts the required fields.  
 * Supported options:
-```    
- include_complex_top_level = true/false - Include the complex type top level element when logged.
- include_bitstream = true/false - Include the bitstream (base64 or blob) in the splunk event.
- write_events = true/false - Write out the events to disk.  
- gzip_events = true/false - Gzip the events written to disk.
- write_events_folder = "/opt/esb/brokerevents"- Directory to which events must be written.  
-```
+  * `include_complex_top_level = true/false` - Include the complex type top level element when logged.
+  * `include_bitstream = true/false` - Include the bitstream (base64 or blob) in the splunk event.
+  * `write_events = true/false` - Write out the events to disk.  
+  * `gzip_events = true/false` - Gzip the events written to disk.
+  * `write_events_folder = "/opt/brokerevents"` - Directory to which events must be written.  
+
 
 ## Logging
 
