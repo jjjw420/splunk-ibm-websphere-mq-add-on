@@ -1,8 +1,8 @@
-<endpoint name="data/inputs/mqinput">
-	<header>IBM Websphere MQ Queue</header>
+<endpoint name="data/inputs/mqchs">
+	<header>IBM Websphere MQ Channel Status</header>
 	<breadcrumb>
 		<parent hidecurrent="False">datainputstats</parent>
-		<name>IBM Websphere MQ Queue</name>
+		<name>IBM Websphere MQ Channel Status</name>
 	</breadcrumb>
 	<elements>
 		<element name="sourceFields" type="fieldset">
@@ -13,7 +13,7 @@
 				<element name="name" label="Input Name">
 					<view name="list" />
 					<view name="create" />
-					<key name="exampleText">Name of this IBM Websphere MQ Queue input. (NO SPACES ALLOWED)</key>
+					<key name="exampleText">Name of this IBM Websphere MQ Channel Status input. (NO SPACES ALLOWED)</key>
 				</element>
 				<element name="queue_manager_details" type="fieldset">
 					<key name="legend">Queue Manager Details</key>
@@ -27,107 +27,65 @@
 							<view name="create" />
 							<key name="exampleText">The queue manager to connect to.</key>
 						</element>
-		
+
 						<element name="queue_manager_host" type="textfield" label="Queue Manager Host">
 							<view name="edit" />
 							<view name="create" />
 							<key name="exampleText">The queue manager host.</key>
 						</element>
-		
+
 						<element name="port" type="textfield" label="Listener Port">
 							<view name="edit" />
 							<view name="create" />
-							<key name="exampleText">The Queue Manager Listener port. Defaults to 1414.</key>
+							<key name="exampleText">The Queue Manager Listener port. Defaults to 1414.
+							</key>
 						</element>
-		
-						<element name="server_connection_channel" type="textfield"
-							label="The server connection channel">
+
+						<element name="server_connection_channel" type="textfield" label="The server connection channel">
 							<view name="edit" />
 							<view name="create" />
 							<key name="exampleText">The server connection channel.</key>
 						</element>
-					
+
 					</elements>
 				</element>
 				
-				<element name="queues" type="fieldset">
-					<key name="legend">Queues</key>
+				<element name="channels" type="fieldset">
+					<key name="legend">Channels</key>
 					<view name="edit" />
 					<view name="create" />
 					<view name="list" />
 					<elements>
-						<element name="queue_names" type="textfield" label="Queue Names">
+						<element name="channel_names" type="textfield" label="Channel Names">
 							<view name="edit" />
 							<view name="create" />
-							<key name="exampleText">The queue names to get messages from. Comma delimited if multiple.</key>
+							<key name="exampleText">One or more Channel Names. Comma delimited, wild-cards allowed.</key>
 						</element>
 					</elements>
 				</element>
 				
 				<element name="polling_details" type="fieldset">
-					<key name="legend">Polling and Triggering</key>
+					<key name="legend">Polling</key>
 					<view name="edit" />
 					<view name="create" />
 					<view name="list" />
 					<elements>
-		
-						<element name="mqinput_interval" type="textfield" label="Interval">
+
+						<element name="mqchs_interval" type="textfield" label="Interval">
 							<view name="list" />
 							<view name="edit" />
 							<view name="create" />
-							<key name="exampleText">How often to run the MQ input script(in seconds).  Defaults to 60 seconds.</key>
+							<key name="exampleText">How often to run the MQ channel status script(in seconds). Defaults to 60 seconds.</key>
 						</element>
-						
+
 						<element name="persistent_connection" type="checkbox" label="Persistent Connection">
 							<view name="edit" />
 							<view name="create" />
 							<key name="exampleText">Keep the queue manager connection open.</key>
 						</element>
-						
-						
-						<element name="start_process_per_queue" type="checkbox" label="Process per queue">
-							<view name="edit" />
-							<view name="create" />
-							<key name="exampleText">Start a process for each queue.</key>
-						</element>
-						
-						<element name="use_mq_triggering" type="checkbox" label="Use MQ triggering">
-							<view name="edit" />
-							<view name="create" />
-							<key name="exampleText">Use MQ triggering instead of polling interval.</key>
-						</element>
-					</elements>
-				</element>	
-			<!-- 	
-				<element name="event_options" type="fieldset">
-					<key name="legend">Event Options</key>
-					<view name="edit" />
-					<view name="create" />
-					<view name="list" />
-					<elements>	
-						<element name="use_mqmd_puttime" type="checkbox" label="Use MQMD.PutDate and MQMD.PutTime">
-							<view name="list" />
-							<view name="edit" />
-							<view name="create" />
-							<key name="exampleText">Use the MQMD.PutDate and MQMD.PutTime as the event time.</key>
-						</element>
-		
-						<element name="include_mqmd" type="checkbox"
-							label="Include the MQMD in the event">
-							<view name="edit" />
-							<view name="create" />
-							<key name="exampleText">Include the MQMD in the event.</key>
-						</element>
-						
-						<element name="pretty_mqmd" type="checkbox"
-							label="Beautify the MQMD in the event">
-							<view name="edit" />
-							<view name="create" />
-							<key name="exampleText">Beautify the MQMD in the event.</key>
-						</element>
+					
 					</elements>
 				</element>
--->
 				<element name="handler" type="fieldset">
 					<key name="legend">Custom Response Handling</key>
 					<view name="edit" />
@@ -136,23 +94,20 @@
 					<elements>
 
 						<element name="response_handler" type="textfield" label="Response Handler">
-
 							<view name="edit" />
 							<view name="create" />
-							<key name="exampleText">Python classname of custom response handler, defaults to DefaultQueueResponseHandler.</key>
+							<key name="exampleText">Python classname of custom response handler, defaults to DefaultChannelStatusResponseHandler.</key>
 						</element>
-						<element name="response_handler_args" type="textfield"
-							label="Response Handler Arguments">
-
+						
+						<element name="response_handler_args" type="textfield" label="Response Handler Arguments">
 							<view name="edit" />
 							<view name="create" />
-							<key name="exampleText">Response Handler arguments string. key=value,key2=value2.  DefaultQueueResponseHandler defaults(see documentation for available options): include_payload=true, use_mqmd_puttime=true, include_mqmd=false</key>
+							<key name="exampleText">Response Handler arguments string, key=value,key2=value2.  DefaultChannelStatusHandler defaults(see documentation for available options): include_zero_values=false, textual_values=true</key>
 						</element>
 
 					</elements>
 				</element>
 
-		
 			</elements>
 		</element>
 
