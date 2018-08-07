@@ -21,7 +21,7 @@ import xml.sax.saxutils
 import time
 import threading
 import pymqi
-import CMQC
+from pymqi import CMQC as CMQC
 #import binascii
 #import os
 import uuid
@@ -252,21 +252,21 @@ class ChannelStatusPollerThread(threading.Thread):
                     self._qm = pymqi.QueueManager(None)
                     logging.debug("Connecting to " + str(self.queue_manager_name) + str(self.server_connection_channel))
                    
-                    self._qm.connectTCPClient(self.queue_manager_name, pymqi.cd(), str(self.server_connection_channel), self.socket)
+                    self._qm.connectTCPClient(self.queue_manager_name, pymqi.cd(), str(self.server_connection_channel), self.socket, None, None)
                     logging.debug("Successfully Connected to " + str(self.queue_manager_name) + str(self.server_connection_channel))
                 else:
                     if not self.persistent_connection: 
                         self._qm = pymqi.QueueManager(None)
                         logging.debug("Connecting to " + str(self.queue_manager_name) + str(self.server_connection_channel))
                        
-                        self._qm.connectTCPClient(self.queue_manager_name, pymqi.cd(), str(self.server_connection_channel), self.socket)
+                        self._qm.connectTCPClient(self.queue_manager_name, pymqi.cd(), str(self.server_connection_channel), self.socket, None, None)
                         logging.debug("Successfully Connected to " + str(self.queue_manager_name) + str(self.server_connection_channel))
                     else:
                         if not self._qm._is_connected():
                             self._qm = pymqi.QueueManager(None)
                             logging.debug("Connecting to " + str(self.queue_manager_name) + str(self.server_connection_channel))
                             
-                            self._qm.connectTCPClient(self.queue_manager_name, pymqi.cd(), str(self.server_connection_channel), self.socket)
+                            self._qm.connectTCPClient(self.queue_manager_name, pymqi.cd(), str(self.server_connection_channel), self.socket, None, None)
                             logging.debug("Successfully Connected to " + str(self.queue_manager_name) + str(self.server_connection_channel))
                             
                 logging.debug("channel name list: %s" % str(self.channel_name_list))

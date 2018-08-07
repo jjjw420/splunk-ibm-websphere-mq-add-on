@@ -1,3 +1,7 @@
+1.2
+-----
+Change to support PyMQI 1.5+
+
 1.1
 -----
 

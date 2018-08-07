@@ -23,20 +23,22 @@ Created from the Splunk modular input examples.
 ## Dependencies
 
 * Splunk 6.0+
-* PyMQI 1.2+
+* PyMQI 1.5+
 * ctypes library for Python
 * IBM Websphere MQ Client Libraries V7+
 * Only currently supported on Linux (but Windows (and any other platform) should be possible if the platform versions of the PyMQI and ctypes libraries are installed) 
 
 ## Setup
 
-* Install the IBM Websphere MQ client.  
+* Install the IBM Websphere MQ client.  Ensure that the user that runs splunk has access to the MQ client libraries.  The easiest way to achieve this is to add the MQ client library locations (generaly /opt/mqm/lib) to the dynamic loader configuration (ld.so.conf). 
 * Get and build the PyMQI library.  You can download from here: https://github.com/dsuch/pymqi 
 * Untar the MQ modular input release to your $SPLUNK_HOME/etc/apps directory.
 * Copy the built PyMQI library to the $SPLUNK_HOME/etc/apps/mq_ta/bin folder.
-* Copy python c_types library directory to the $SPLUNK_HOME/etc/apps/mq_ta/bin directory.  
+* Copy python c_types library directory to the $SPLUNK_HOME/etc/apps/mq_ta/bin directory.  Splunk's Python interpreter is built with UCS-2.  Make sure you use a compatible _ctypes.so library.
 * Ensure that the pymqi and ctypes libraries can be imported when using the Splunk Python interpreter. 
 * Restart Splunk
+
+
 
 ## Response Handlers
 ### DefaultQueueResponseHandler
