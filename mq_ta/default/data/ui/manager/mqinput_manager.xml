@@ -46,7 +46,18 @@
 							<view name="create" />
 							<key name="exampleText">The server connection channel.</key>
 						</element>
-					
+
+						<element name="mq_user_name" type="textfield" label="User Name">
+							<view name="edit" />
+							<view name="create" />
+							<key name="exampleText">The user name to use when connecting to the Queue Manager. Defaults to spaces. </key>
+						</element>
+
+						<element name="mq_password" type="password" label="Password">
+							<view name="edit" />
+							<view name="create" />
+							<key name="exampleText">The password to use when connecting to the Queue Manager. Defaults to spaces. </key>
+						</element>					
 					</elements>
 				</element>
 				

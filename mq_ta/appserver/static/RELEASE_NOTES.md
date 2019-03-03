@@ -1,3 +1,7 @@
+1.3
+-----
+Add support for MQ authentication.
+
 1.2
 -----
 Change to support PyMQI 1.5+

@@ -74,7 +74,21 @@ SCHEME = """<scheme>
                 <required_on_edit>false</required_on_edit>
                 <required_on_create>false</required_on_create>
             </arg>
-          
+
+            <arg name="mq_user_name">
+                <title>User Name</title>
+                <description>The user to use when connecting to the queue manager. Defaults to spaces(no user)</description>
+                <required_on_edit>false</required_on_edit>
+                <required_on_create>false</required_on_create>
+            </arg>
+
+            <arg name="mq_password">
+                <title>Password</title>
+                <description>The password to use when connecting to the queue manager. Defaults to spaces(no password)</description>
+                <required_on_edit>false</required_on_edit>
+                <required_on_create>false</required_on_create>
+            </arg>
+
             <arg name="channel_names">
                 <title>Channel Names</title>
                 <description>One or more Channel Names. Comma delimited. Use "ALL" to query all available channels.  Only "server connection, "sender" and "cluster sender" channel status will be checked.</description>
@@ -151,7 +165,10 @@ def do_run():
     queue_manager_host = config.get("queue_manager_host")
     port = int(config.get("port",1414))
     server_connection_channel = config.get("server_connection_channel","SYSTEM.ADMIN,SVRCON")
-    
+      
+    mq_user_name = config.get("mq_user_name")
+    mq_password = config.get("mq_password")
+
     channel_names = config.get("channel_names")
     
     if channel_names is not None:
@@ -199,13 +216,13 @@ def do_run():
         pid_fle.write(group_id)
         pid_fle.close()
         logging.debug("Starting single process")
-        qp = ChannelStatusPollerThread(group_id, name, splunk_host, queue_manager_name, queue_manager_host, port,server_connection_channel, channel_names, mqchs_interval, persistent_connection, create_event_per_channnel, include_zero_values) 
+        qp = ChannelStatusPollerThread(group_id, name, splunk_host, queue_manager_name, queue_manager_host, port,server_connection_channel, mq_user_name, mq_password, channel_names, mqchs_interval, persistent_connection, create_event_per_channnel, include_zero_values) 
         qp.start() 
 
 
 class ChannelStatusPollerThread(threading.Thread):
     
-    def __init__(self, group_id, name, splunk_host, queue_manager_name, queue_manager_host, port,server_connection_channel, channel_names, mqchs_interval, persistent_connection, create_event_per_channnel, include_zero_values, **kw):
+    def __init__(self, group_id, name, splunk_host, queue_manager_name, queue_manager_host, port,server_connection_channel, mq_user_name, mq_password, channel_names, mqchs_interval, persistent_connection, create_event_per_channnel, include_zero_values, **kw):
         threading.Thread.__init__(self)
         #logging.debug("-------------------------------------------------------")
         logging.debug("Started channel Poller for channel/s: " + channel_names + " Thread Group:" + group_id)
@@ -215,6 +232,20 @@ class ChannelStatusPollerThread(threading.Thread):
         self.queue_manager_host = queue_manager_host
         self.port = port
         self.server_connection_channel = server_connection_channel
+        self.mq_user_name = mq_user_name
+        self.mq_password = mq_password
+        
+        if self.mq_user_name is not None:
+           if self.mq_user_name.strip() == "":
+               self.mq_user_name = None
+               self.mq_password = None
+           else:
+               self.mq_user_name = self.mq_user_name.strip()
+               self.mq_password = self.mq_password.strip()
+        else:
+            self.mq_user_name = None
+            self.mq_password = None
+        
         self.channel_names = channel_names
         self.mqinput_interval = mqchs_interval
         self._qm = None
@@ -252,21 +283,21 @@ class ChannelStatusPollerThread(threading.Thread):
                     self._qm = pymqi.QueueManager(None)
                     logging.debug("Connecting to " + str(self.queue_manager_name) + str(self.server_connection_channel))
                    
-                    self._qm.connectTCPClient(self.queue_manager_name, pymqi.cd(), str(self.server_connection_channel), self.socket, None, None)
+                    self._qm.connectTCPClient(self.queue_manager_name, pymqi.cd(), str(self.server_connection_channel), self.socket, self.mq_user_name, self.mq_password)
                     logging.debug("Successfully Connected to " + str(self.queue_manager_name) + str(self.server_connection_channel))
                 else:
                     if not self.persistent_connection: 
                         self._qm = pymqi.QueueManager(None)
                         logging.debug("Connecting to " + str(self.queue_manager_name) + str(self.server_connection_channel))
                        
-                        self._qm.connectTCPClient(self.queue_manager_name, pymqi.cd(), str(self.server_connection_channel), self.socket, None, None)
+                        self._qm.connectTCPClient(self.queue_manager_name, pymqi.cd(), str(self.server_connection_channel), self.socket, self.mq_user_name, self.mq_password)
                         logging.debug("Successfully Connected to " + str(self.queue_manager_name) + str(self.server_connection_channel))
                     else:
                         if not self._qm._is_connected():
                             self._qm = pymqi.QueueManager(None)
                             logging.debug("Connecting to " + str(self.queue_manager_name) + str(self.server_connection_channel))
                             
-                            self._qm.connectTCPClient(self.queue_manager_name, pymqi.cd(), str(self.server_connection_channel), self.socket, None, None)
+                            self._qm.connectTCPClient(self.queue_manager_name, pymqi.cd(), str(self.server_connection_channel), self.socket, self.mq_user_name, self.mq_password)
                             logging.debug("Successfully Connected to " + str(self.queue_manager_name) + str(self.server_connection_channel))
                             
                 logging.debug("channel name list: %s" % str(self.channel_name_list))

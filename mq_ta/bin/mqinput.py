@@ -75,6 +75,20 @@ SCHEME = """<scheme>
                 <required_on_create>false</required_on_create>
             </arg>
           
+            <arg name="mq_user_name">
+                <title>User Name</title>
+                <description>The user to use when connecting to the queue manager. Defaults to spaces(no user)</description>
+                <required_on_edit>false</required_on_edit>
+                <required_on_create>false</required_on_create>
+            </arg>
+
+            <arg name="mq_password">
+                <title>Password</title>
+                <description>The password to use when connecting to the queue manager. Defaults to spaces(no password)</description>
+                <required_on_edit>false</required_on_edit>
+                <required_on_create>false</required_on_create>
+            </arg>
+
             <arg name="queue_names">
                 <title>Queue Names</title>
                 <description>One or more Queue Names. Comma delimited.</description>
@@ -166,6 +180,8 @@ def do_run():
     port = int(config.get("port",1414))
     server_connection_channel = config.get("server_connection_channel","SYSTEM.ADMIN,SVRCON")
     
+    mq_user_name = config.get("mq_user_name")
+    mq_password = config.get("mq_password")
     queue_names = config.get("queue_names")
     
     if not queue_names is None:
@@ -230,11 +246,11 @@ def do_run():
             logging.debug("Starting process per queue")
             qps = []            
             for queue_name in queue_name_list:
-                qps.append(QueuePollerThread(group_id, name, splunk_host, queue_manager_name, queue_manager_host, port, server_connection_channel, queue_name, mqinput_interval, start_process_per_queue, persistent_connection)) 
+                qps.append(QueuePollerThread(group_id, name, splunk_host, queue_manager_name, queue_manager_host, port, server_connection_channel, mq_user_name, mq_password, queue_name, mqinput_interval, start_process_per_queue, persistent_connection)) 
                 qps[-1].start()
         else:
             logging.debug("Starting single process")
-            qp = QueuePollerThread(group_id, name, splunk_host, queue_manager_name, queue_manager_host, port,server_connection_channel, queue_names, mqinput_interval, start_process_per_queue, persistent_connection) 
+            qp = QueuePollerThread(group_id, name, splunk_host, queue_manager_name, queue_manager_host, port,server_connection_channel, mq_user_name, mq_password, queue_names, mqinput_interval, start_process_per_queue, persistent_connection) 
             qp.start() 
 
 # def make_mqmd(self, msg_desc, pretty_mqmd):
@@ -331,7 +347,7 @@ def do_run():
 
 class QueuePollerThread(threading.Thread):
     
-    def __init__(self, group_id, name, splunk_host, queue_manager_name, queue_manager_host, port,server_connection_channel, queue_names, mqinput_interval, start_process_per_queue, persistent_connection, **kw):
+    def __init__(self, group_id, name, splunk_host, queue_manager_name, queue_manager_host, port,server_connection_channel, mq_user_name, mq_password, queue_names, mqinput_interval, start_process_per_queue, persistent_connection, **kw):
         threading.Thread.__init__(self)
         #logging.debug("-------------------------------------------------------")
         logging.debug("Started Queue Poller for queue/s: " + queue_names + " Thread Group:" + group_id)
@@ -341,10 +357,23 @@ class QueuePollerThread(threading.Thread):
         self.queue_manager_host = queue_manager_host
         self.port = port
         self.server_connection_channel = server_connection_channel
+        self.mq_user_name = mq_user_name
+        self.mq_password = mq_password
         self.queue_names = queue_names
         self.mqinput_interval = mqinput_interval
         self.start_process_per_queue = start_process_per_queue
         self._qm = None
+        
+        if self.mq_user_name is not None:
+           if self.mq_user_name.strip() == "":
+               self.mq_user_name = None
+               self.mq_password = None
+           else:
+               self.mq_user_name = self.mq_user_name.strip()
+               self.mq_password = self.mq_password.strip()
+        else:
+            self.mq_user_name = None
+            self.mq_password = None
         
         self.setName(group_id)
         #logging.debug("****** Started NEW THREAD: " + self.getName())
@@ -378,25 +407,29 @@ class QueuePollerThread(threading.Thread):
                     pass
                     #logging.debug("!!! NOT Stopping... this pid:" + str(self.getName()) + " File pid:" + str(file_pid))
                 
+                cd = pymqi.cd()
+                cd["MaxMsgLength"] = 104857600
+
+ 
                 if self._qm is None:
                     self._qm = pymqi.QueueManager(None)
                     logging.debug("Connecting to " + str(self.queue_manager_name) + str(self.server_connection_channel))
                    
-                    self._qm.connectTCPClient(self.queue_manager_name, pymqi.cd(), str(self.server_connection_channel), self.socket, None, None)
+                    self._qm.connectTCPClient(self.queue_manager_name, cd, str(self.server_connection_channel), self.socket, self.mq_user_name, self.mq_password)
                     logging.debug("Successfully Connected to " + str(self.queue_manager_name) + str(self.server_connection_channel))
                 else:
                     if not self.persistent_connection: 
                         self._qm = pymqi.QueueManager(None)
                         logging.debug("Connecting to " + str(self.queue_manager_name) + str(self.server_connection_channel))
                        
-                        self._qm.connectTCPClient(self.queue_manager_name, pymqi.cd(), str(self.server_connection_channel), self.socket, None, None)
+                        self._qm.connectTCPClient(self.queue_manager_name, cd, str(self.server_connection_channel), self.socket, self.mq_user_name, self.mq_password)
                         logging.debug("Successfully Connected to " + str(self.queue_manager_name) + str(self.server_connection_channel))
                     else:
                         if not self._qm._is_connected():
                             self._qm = pymqi.QueueManager(None)
                             logging.debug("Connecting to " + str(self.queue_manager_name) + str(self.server_connection_channel))
                             
-                            self._qm.connectTCPClient(self.queue_manager_name, pymqi.cd(), str(self.server_connection_channel), self.socket, None, None)
+                            self._qm.connectTCPClient(self.queue_manager_name, cd, str(self.server_connection_channel), self.socket, self.mq_user_name, self.mq_password)
                             logging.debug("Successfully Connected to " + str(self.queue_manager_name) + str(self.server_connection_channel))
                             
                 queues = []
@@ -473,12 +506,14 @@ class QueuePollerThread(threading.Thread):
                  
 class MQTriggerThread(threading.Thread):
      
-    def __init__(self, queue_manager_name, queue_manager_host, port,server_connection_channel, queue_names, mqinput_interval, **kw):
+    def __init__(self, queue_manager_name, queue_manager_host, port,server_connection_channel, mq_user_name, mq_password, queue_names, mqinput_interval, **kw):
         threading.Thread.__init__(self)
         self.queue_manager_name = queue_manager_name
         self.queue_manager_host = queue_manager_host
         self.port = port
         self.server_connection_channel = server_connection_channel
+        self.mq_user_name = mq_user_name
+        self.mq_password = mq_password
         self.queue_names = queue_names
         self.queue_name_list = map(str,queue_names.split(","))   
         #trim any whitespace using a list comprehension

@@ -13,6 +13,12 @@ port= <value>
 *The server connection channel
 server_connection_channel= <value>
 
+*The user name
+mq_user_name= <value>
+
+*The password
+mq_password= <value>
+
 *1 or more queue Names , comma delimited
 queue_names= <value>
 
@@ -51,6 +57,12 @@ port= <value>
 
 *The server connection channel
 server_connection_channel= <value>
+
+*The user name
+mq_user_name= <value>
+
+*The password
+mq_password= <value>
 
 *One or more sender Channel Names, comma delimited, wild-cards allowed.
 channel_names= <value>

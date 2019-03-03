@@ -9,7 +9,7 @@ import time
 import binascii
 import base64
 import pymqi
-import CMQC
+from pymqi import CMQC as CMQC
 import string
 import os
 import lxml
@@ -28,7 +28,7 @@ class DefaultQueueResponseHandler:
     """"
     The DefaultResponseHandler uses the "syslog" input type and supports the following options:
     
-    DefaultResponseHandler arguments: 
+    DefaultQueuResponseHandler arguments: 
         include_payload=false/true - Include the message payload in the event.  Default: true
         use_mqmd_puttime=false/true - Use the message put time as the event time.  Default: true 
         include_mqmd=false/true - Include the MQMD in the event.  Default: false 
@@ -510,11 +510,19 @@ class BrokerEventResponseHandler:
             node_details = ""
             nl = doc.xpath(u"//wmb:messageFlowData[1]/wmb:node", namespaces=nss)
             if len(nl) > 0:
-                node_label = nl[0].attrib["{%s}nodeLabel" % WMBNAMESPACE]
-                node_type = nl[0].attrib["{%s}nodeType" % WMBNAMESPACE]
-                node_terminal = nl[0].attrib["{%s}terminal" % WMBNAMESPACE]
-                
-                node_details = 'node="%s" node_type="%s" node_terminal="%s"' % (node_label, node_type, node_terminal)
+                node_details = ""
+                if nl[0].attrib.has_key("{%s}nodeLabel" % WMBNAMESPACE):
+                    node_label = nl[0].attrib["{%s}nodeLabel" % WMBNAMESPACE]
+                    node_details = node_details + 'node="%s" ' % node_label
+
+                if nl[0].attrib.has_key("{%s}nodeType" % WMBNAMESPACE):
+                    node_type = nl[0].attrib["{%s}nodeType" % WMBNAMESPACE]
+                    node_details = node_details + 'node_type="%s" ' % node_type
+
+                if nl[0].attrib.has_key("{%s}terminal" % WMBNAMESPACE):
+                    node_terminal = nl[0].attrib["{%s}terminal" % WMBNAMESPACE]
+                    node_details = node_details + 'node_terminal="%s" ' % node_terminal
+                #node_details = 'node="%s" node_type="%s" node_terminal="%s"' % (node_label, node_type, node_terminal)
     
             
             complex_content = ''
@@ -564,11 +572,24 @@ class BrokerEventResponseHandler:
                     if value is not None:
                         simple_content = simple_content + '%s="%s" ' % (name, value.strip())
                         
+            bitstream_data = ""
+            bitstream_encoding = ""
+            logging.debug("Include bitstream:" + str(self.include_bitstream))           
+            if self.include_bitstream:
+                nl = doc.xpath("//wmb:bitstream", namespaces=nss)
+                logging.error("len is:" + str(len(nl)))
+                if len(nl) > 0:
+                    encoding_key = "{%s}encoding" % WMBNAMESPACE
+                    if nl[0].attrib.has_key(encoding_key): 
+                        bitstream_encoding = 'bitstream_encoding="%s" '
+                        bitstream_encoding = bitstream_encoding % (nl[0].attrib[encoding_key])
+                    bitstream_data = 'bitstream_data="{}" ' 
+                    bitstream_data = bitstream_data.format(nl[0].text) 
             #handle trigger
             if from_trigger:
                 pass
             else:  
-                splunk_event = splunk_event + index_time + host + process + queue_manager_name_str + queue_str + broker + exec_group + flow + node_details +  complex_content + simple_content + event_file_name
+                splunk_event = splunk_event + index_time + host + process + queue_manager_name_str + queue_str + broker + exec_group + flow + node_details +  complex_content + simple_content + event_file_name + bitstream_encoding + bitstream_data 
                 print_xml_single_instance_mode(splunk_host, splunk_event)
                 
         except Exception, ex:
