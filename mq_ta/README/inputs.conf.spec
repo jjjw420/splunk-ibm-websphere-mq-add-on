@@ -32,9 +32,14 @@ persistent_connection= <value>
 *Whether or not to be trigger by websphere mq
 use_mq_triggering= <value>
 
-
+*Whether to start a process dedicated per queue or whether to start a process that will service all queues sequentialy.
 start_process_per_queue= <value>
 
+*Start Multiple processes.
+start_multiple_processes= <value>
+
+*Number of processes to start.  Default 1.  
+start_number_of_processes= <value>
 
 *Python classname of custom response handler
 response_handler= <value>

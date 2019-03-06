@@ -1,11 +1,23 @@
-#add your custom response handler class to this module
-#import sys
+'''
+IBM Websphere MQ Modular Input for Splunk
+Hannes Wagener - 2015
+
+Used the Splunk provided modular input as example.
+
+Add response handlers to perform specific functions here.
+
+DISCLAIMER
+You are free to use this code in any way you like, subject to the
+Python & IBM disclaimers & copyrights. I make no representations
+about the suitability of this software for any purpose. It is
+provided "AS-IS" without warranty of any kind, either express or
+implied.
+
+'''
+
 import json
-#import csv
-#import io
 import datetime
 import time
-#import pytz
 import binascii
 import base64
 import pymqi
@@ -26,21 +38,39 @@ logging.basicConfig(level=logging.DEBUG, format='%(levelname)s %(message)s')
 
 class DefaultQueueResponseHandler:
     """"
-    The DefaultResponseHandler uses the "syslog" input type and supports the following options:
-    
-    DefaultQueuResponseHandler arguments: 
-        include_payload=false/true - Include the message payload in the event.  Default: true
-        use_mqmd_puttime=false/true - Use the message put time as the event time.  Default: true 
-        include_mqmd=false/true - Include the MQMD in the event.  Default: false 
-        pretty_mqmd=false/true - Use textual descriptions for MQMD values. Default: true
-        make_mqmd_printable=false/true - Escape non text values in the MQMD.  Default: true 
-        payload_limit=1024 - How many bytes of the payload to include in the splunk event.  Default: 1024 (1kb)  
-        encode_payload=false/base64/hexbinary - Encode the payload.   Default: false 
-        make_payload_printable=false/true - Escape non text values in the payload.  Default: true
+    The DefaultResponseHandler uses the "syslog" input type and
+    supports the following options:
+
+    DefaultQueuResponseHandler arguments:
+        include_payload=false/true - Include the message payload in the event.
+        Default: true
+
+        use_mqmd_puttime=false/true - Use the message put time as the
+        event time.  Default: true
+
+        include_mqmd=false/true - Include the MQMD in the event.
+        Default: false
+
+        pretty_mqmd=false/true - Use textual descriptions for MQMD values.
+        Default: true
+
+        make_mqmd_printable=false/true - Escape non text values in the MQMD.
+        Default: true
+
+        payload_limit=1024 - How many bytes of the payload to include
+        in the splunk event. Default: 1024 (1kb)
+
+        encode_payload=false/base64/hexbinary - Encode the payload.
+        Default: false
+
+        make_payload_printable=false/true - Escape non text values in
+        the payload.  Default: true
 
     """
 
-    def __init__(self,**args):
+    def __init__(self, **args):
+
+        logging.error("default queue handler _init_")
         self.args = args
         self.mqmd_dicts = None
 
@@ -57,9 +87,15 @@ class DefaultQueueResponseHandler:
         mqat_dict = pymqi._MQConst2String(CMQC, "MQAT_")
         mqmf_dict = pymqi._MQConst2String(CMQC, "MQMF_")
         mqol_dict = pymqi._MQConst2String(CMQC, "MQOL_")
-        
-        self.mqmd_dicts = {"mqmd": mqmd_dict, "mqro": mqro_dict, "mqmt": mqmt_dict, "mqei": mqei_dict, "mqfb": mqfb_dict, "mqenc": mqenc_dict, "mqccsi": mqccsi_dict,"mqfmt": mqfmt_dict, "mqpri": mqpri_dict, "mqper": mqper_dict, "mqat": mqat_dict, "mqmf": mqmf_dict, "mqol": mqol_dict}
-        
+
+        self.mqmd_dicts = {"mqmd": mqmd_dict, "mqro": mqro_dict,
+                           "mqmt": mqmt_dict, "mqei": mqei_dict,
+                           "mqfb": mqfb_dict, "mqenc": mqenc_dict,
+                           "mqccsi": mqccsi_dict, "mqfmt": mqfmt_dict,
+                           "mqpri": mqpri_dict, "mqper": mqper_dict,
+                           "mqat": mqat_dict, "mqmf": mqmf_dict,
+                           "mqol": mqol_dict}
+
         if self.args.has_key("include_mqmd"):
             if self.args["include_mqmd"].lower().strip() == "true":
                 self.include_mqmd = True
@@ -67,8 +103,7 @@ class DefaultQueueResponseHandler:
                 self.include_mqmd = False
         else:
             self.include_mqmd = False
-        
-                
+
         if self.args.has_key("pretty_mqmd"):
             if self.args["pretty_mqmd"].strip().lower() == "true":
                 self.pretty_mqmd = True
@@ -76,7 +111,7 @@ class DefaultQueueResponseHandler:
                 self.pretty_mqmd = False
         else:
             self.pretty_mqmd = True
-            
+
         if self.args.has_key("use_mqmd_puttime"):
             if self.args["use_mqmd_puttime"].lower().strip() == "true":
                 self.use_mqmd_puttime = True
@@ -91,21 +126,21 @@ class DefaultQueueResponseHandler:
             else:
                 self.include_payload = False
         else:
-            self.include_payload = True 
-            
+            self.include_payload = True
+
         if self.args.has_key("payload_limit"):
             try:
                 self.payload_limit = int(self.args["payload_limit"].strip())
             except:
                 self.payload_limit = 0
         else:
-            self.payload_limit = 1024 
-        
+            self.payload_limit = 1024
+
         if self.args.has_key("encode_payload"):
             self.encode_payload = self.args["encode_payload"].lower().strip()
         else:
-            self.encode_payload = "false" 
-            
+            self.encode_payload = "false"
+
         if self.args.has_key("make_mqmd_printable"):
             if self.args["make_mqmd_printable"].lower().strip() == "true":
                 self.make_mqmd_printable = True
@@ -113,7 +148,7 @@ class DefaultQueueResponseHandler:
                 self.make_mqmd_printable = False
         else:
             self.make_mqmd_printable = True
-            
+
         if self.args.has_key("make_payload_printable"):
             if self.args["make_payload_printable"].lower().strip() == "true":
                 self.make_payload_printable = True
@@ -121,90 +156,113 @@ class DefaultQueueResponseHandler:
                 self.make_payload_printable = False
         else:
             self.make_payload_printable = True
-            
-        
-        
-    def __call__(self, splunk_host, queue_manager_name, queue, msg_data, msg_desc, from_trigger, **kw):        
-        
-        splunk_event =""
-        
+
+    def __call__(self, splunk_host, queue_manager_name, queue, msg_data,
+                 msg_desc, from_trigger, **kw):
+
+        splunk_event = ""
+        logging.error("default queue handler _call_")
         mqmd_str = ""
         if self.include_mqmd and (msg_desc is not None):
-            new_mqmd = make_mqmd(msg_desc, self.mqmd_dicts, self.pretty_mqmd, self.make_mqmd_printable)
+            new_mqmd = make_mqmd(msg_desc, self.mqmd_dicts,
+                                 self.pretty_mqmd,
+                                 self.make_mqmd_printable)
             for (mqmd_key, mqmd_value) in new_mqmd.items():
-                if isinstance(mqmd_value, int) or isinstance(mqmd_value, float) or str(mqmd_value).startswith("MQ"):
-                    mqmd_str = mqmd_str + " %s=%s" % (str(mqmd_key).strip(), str(mqmd_value))
+                if isinstance(mqmd_value, int) or \
+                    isinstance(mqmd_value, float) or \
+                        str(mqmd_value).startswith("MQ"):
+                    mqmd_str = mqmd_str + \
+                                " %s=%s" % (str(mqmd_key).strip(),
+                                            str(mqmd_value))
                 else:
-                    mqmd_str = mqmd_str + ' %s="%s"' % (str(mqmd_key).strip(), str(mqmd_value))
-        
-        index_time = "[" + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3] + " " + time.strftime("%z") + "]"   
+                    mqmd_str = mqmd_str + \
+                                ' %s="%s"' % (str(mqmd_key).strip(),
+                                              str(mqmd_value))
+
+        index_time = "[" + \
+            datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3] + \
+            " " + time.strftime("%z") + "]"
+
         if self.use_mqmd_puttime:
-            puttime = datetime.datetime.strptime(msg_desc["PutDate"] + " " + msg_desc["PutTime"][0:6], "%Y%m%d %H%M%S")
-            #puttime = puttime.replace(tzinfo=pytz.timezone("GMT"))
+            puttime = datetime.datetime.strptime(msg_desc["PutDate"] +
+                                                 " " +
+                                                 msg_desc["PutTime"][0:6],
+                                                 "%Y%m%d %H%M%S")
+            # puttime = puttime.replace(tzinfo=pytz.timezone("GMT"))
             localtime = puttime - datetime.timedelta(seconds=time.timezone)
 
             h_secs = msg_desc["PutTime"][6:]
-            index_time = "[" + localtime.strftime("%Y-%m-%d %H:%M:%S") + "." + h_secs + "0 " +  time.strftime("%z") + "]"
-            
+            index_time = "[" + localtime.strftime("%Y-%m-%d %H:%M:%S") + \
+                         "." + h_secs + "0 " + \
+                         time.strftime("%z") + "]"
 
         payload = ""
         logging.debug("B4 include payload.")
         if self.include_payload:
             if self.encode_payload == "base64":
-                payload = ' payload="%s"' % str(base64.encodestring(msg_data[:self.payload_limit])) 
+                payload = ' payload="%s"' % \
+                    str(base64.encodestring(msg_data[:self.payload_limit]))
             else:
                 if self.encode_payload == "hexbinary":
-                    payload = ' payload="%s"' % str(binascii.hexlify(msg_data[:self.payload_limit])) 
+                    payload = ' payload="%s"' % \
+                        str(binascii.hexlify(msg_data[:self.payload_limit]))
                 else:
                     if self.make_payload_printable:
-                        payload = ' payload="%s"' % make_printable(msg_data[:self.payload_limit])
+                        payload = ' payload="%s"' % \
+                            make_printable(msg_data[:self.payload_limit])
                     else:
-                        payload = ' payload="%s"' % msg_data[:self.payload_limit]
-        
+                        payload = ' payload="%s"' % \
+                            msg_data[:self.payload_limit]
+
         queue_manager_name_str = " queue_manager=%s" % queue_manager_name
-        queue = " queue=%s" % queue 
+        queue = " queue=%s" % queue
         host = " " + splunk_host
-        process = " mqinput(%i):" % os.getpid() 
-        
-        #handle trigger
+        process = " mqinput(%i):" % os.getpid()
+
+        # handle trigger
         if from_trigger:
             pass
-        else:  
-            splunk_event = splunk_event + index_time + host + process + queue_manager_name_str +  queue + mqmd_str + payload
+        else:
+            splunk_event = splunk_event + index_time + host + process + \
+                           queue_manager_name_str + queue + mqmd_str + \
+                           payload
             print_xml_single_instance_mode(splunk_host, splunk_event)
-        
-        
+
+
 class JSONFormatterResponseHandler:
-    
-    def __init__(self,**args):
+
+    def __init__(self, **args):
         pass
-        
-    def __call__(self, response_object,destination,table=False,from_trap=False,trap_metadata=None,split_bulk_output=False,mibView=None):        
-        #handle tables         
+
+    def __call__(self, response_object, destination, table=False,
+                 from_trap=False, trap_metadata=None, split_bulk_output=False,
+                 mibView=None):
+        # handle tables
         if table:
             values = []
             for varBindTableRow in response_object:
                 row = {}
-                for name, val in varBindTableRow:                              
+                for name, val in varBindTableRow:
                     row[name.prettyPrint()] = val.prettyPrint()
                 values.append(row)
-            print_xml_single_instance_mode(destination, json.dumps(values))            
-        #handle scalars
-        else: 
-            values = {} 
+            print_xml_single_instance_mode(destination, json.dumps(values))
+        # handle scalars
+        else:
+            values = {}
             for name, val in response_object:
                 values[name.prettyPrint()] = val.prettyPrint()
-            print_xml_single_instance_mode(destination, json.dumps(values))      
- 
+            print_xml_single_instance_mode(destination, json.dumps(values))
 
 
 def is_printable(char):
-    '''Return true if the character char is printable or false if it is not printable.
+    '''Return true if the character char is printable or false
+       if it is not printable.
     '''
     if string.printable.count(char) > 0:
         return True
     else:
         return False
+
 
 def make_printable(instr):
     '''Return a printable representation of the string instr.
@@ -216,108 +274,114 @@ def make_printable(instr):
         else:
             retstr = retstr + char
     return retstr
-              
+
+
 def make_mqmd(msg_desc, mqmd_dicts, pretty_mqmd, make_mqmd_printable):
-    
+
     logging.debug("Make mqmd.")
-    
+
     mqmd_dict = {}
-    
+
     if mqmd_dicts is None:
         logging.debug("Make mqmd. mqmd_dicts is None")
-    
+
     if msg_desc is None:
         logging.debug("Make mqmd. msg_desc is None")
-    
-        
+
     if pretty_mqmd and mqmd_dicts["mqmd"].has_key(msg_desc['StrucId']):
-        mqmd_dict['StrucId'] =  mqmd_dicts["mqmd"][msg_desc['StrucId']]
+        mqmd_dict['StrucId'] = mqmd_dicts["mqmd"][msg_desc['StrucId']]
     else:
         mqmd_dict['StrucId'] = msg_desc['StrucId']
-    
+
     logging.debug("Make mqmd. after StrucId.")
     if pretty_mqmd and mqmd_dicts["mqmd"].has_key(msg_desc['Version']):
-        mqmd_dict['Version'] =  mqmd_dicts["mqmd"][msg_desc['Version']]
-    else:    
+        mqmd_dict['Version'] = mqmd_dicts["mqmd"][msg_desc['Version']]
+    else:
         mqmd_dict['Version'] = msg_desc['Version']
-    
+
     if pretty_mqmd and mqmd_dicts["mqro"].has_key(msg_desc['Report']):
-        mqmd_dict['Report'] =  mqmd_dicts["mqro"][msg_desc['Report']]
+        mqmd_dict['Report'] = mqmd_dicts["mqro"][msg_desc['Report']]
     else:
         mqmd_dict['Report'] = msg_desc['Report']
-        
+
     if pretty_mqmd and mqmd_dicts["mqmt"].has_key(msg_desc['MsgType']):
-        mqmd_dict['MsgType'] =  mqmd_dicts["mqmt"][msg_desc['MsgType']]
+        mqmd_dict['MsgType'] = mqmd_dicts["mqmt"][msg_desc['MsgType']]
     else:
         mqmd_dict['MsgType'] = msg_desc['MsgType']
-    
+
     if pretty_mqmd and mqmd_dicts["mqei"].has_key(msg_desc['Expiry']):
-        mqmd_dict['Expiry'] =  mqmd_dicts["mqei"][msg_desc['Expiry']]
+        mqmd_dict['Expiry'] = mqmd_dicts["mqei"][msg_desc['Expiry']]
     else:
         mqmd_dict['Expiry'] = msg_desc['Expiry']
-    
+
     if pretty_mqmd and mqmd_dicts["mqfb"].has_key(msg_desc['Feedback']):
-        mqmd_dict['Feedback'] =  mqmd_dicts["mqfb"][msg_desc['Feedback']]
+        mqmd_dict['Feedback'] = mqmd_dicts["mqfb"][msg_desc['Feedback']]
     else:
         mqmd_dict['Feedback'] = msg_desc['Feedback']
 
     if pretty_mqmd and mqmd_dicts["mqenc"].has_key(msg_desc['Encoding']):
-        mqmd_dict['Encoding'] =  mqmd_dicts["mqenc"][msg_desc['Encoding']]
+        mqmd_dict['Encoding'] = mqmd_dicts["mqenc"][msg_desc['Encoding']]
     else:
         mqmd_dict['Encoding'] = msg_desc['Encoding']
-    
+
     logging.debug("Make mqmd. After encoding.")
-    
-    if pretty_mqmd and mqmd_dicts["mqccsi"].has_key(msg_desc['CodedCharSetId']):
-        mqmd_dict['CodedCharSetId'] =  mqmd_dicts["mqccsi"][msg_desc['CodedCharSetId']]
+
+    if pretty_mqmd and \
+       mqmd_dicts["mqccsi"].has_key(msg_desc['CodedCharSetId']):
+        mqmd_dict['CodedCharSetId'] = \
+            mqmd_dicts["mqccsi"][msg_desc['CodedCharSetId']]
     else:
         mqmd_dict['CodedCharSetId'] = msg_desc['CodedCharSetId']
-    
+
     if pretty_mqmd and mqmd_dicts["mqfmt"].has_key(msg_desc['Format']):
-        mqmd_dict['Format'] =  mqmd_dicts["mqfmt"][msg_desc['Format']]
+        mqmd_dict['Format'] = mqmd_dicts["mqfmt"][msg_desc['Format']]
     else:
         mqmd_dict['Format'] = msg_desc['Format']
-    
+
     if pretty_mqmd and mqmd_dicts["mqpri"].has_key(msg_desc['Priority']):
-        mqmd_dict['Priority'] =  mqmd_dicts["mqpri"][msg_desc['Priority']]
+        mqmd_dict['Priority'] = mqmd_dicts["mqpri"][msg_desc['Priority']]
     else:
         mqmd_dict['Priority'] = msg_desc['Priority']
-    
+
     logging.debug("Make mqmd. After Priority.")
-        
+
     if pretty_mqmd and mqmd_dicts["mqper"].has_key(msg_desc['Persistence']):
-        mqmd_dict['Persistence'] =  mqmd_dicts["mqper"][msg_desc['Persistence']]
+        mqmd_dict['Persistence'] = mqmd_dicts["mqper"][msg_desc['Persistence']]
     else:
         mqmd_dict['Persistence'] = msg_desc['Persistence']
-        
+
     if pretty_mqmd and mqmd_dicts["mqat"].has_key(msg_desc['PutApplType']):
-        mqmd_dict['PutApplType'] =  mqmd_dicts["mqat"][msg_desc['PutApplType']]
+        mqmd_dict['PutApplType'] = mqmd_dicts["mqat"][msg_desc['PutApplType']]
     else:
         mqmd_dict['PutApplType'] = msg_desc['PutApplType']
-        
+
     if pretty_mqmd and mqmd_dicts["mqmf"].has_key(msg_desc['MsgFlags']):
-        mqmd_dict['MsgFlags'] =  mqmd_dicts["mqmf"][msg_desc['MsgFlags']]
+        mqmd_dict['MsgFlags'] = mqmd_dicts["mqmf"][msg_desc['MsgFlags']]
     else:
         mqmd_dict['MsgFlags'] = msg_desc['MsgFlags']
-    
+
     logging.debug("Make mqmd. After MsgFlags.")
-    
+
     if pretty_mqmd and mqmd_dicts["mqol"].has_key(msg_desc['OriginalLength']):
-        mqmd_dict['OriginalLength'] =  mqmd_dicts["mqol"][msg_desc['OriginalLength']]
+        mqmd_dict['OriginalLength'] = \
+            mqmd_dicts["mqol"][msg_desc['OriginalLength']]
     else:
         mqmd_dict['OriginalLength'] = msg_desc['OriginalLength']
-    
+
     logging.debug("B4 make printable.")
-    
+
     if make_mqmd_printable:
         mqmd_dict['MsgId'] = make_printable(msg_desc['MsgId'])
         mqmd_dict['CorrelId'] = make_printable(msg_desc['CorrelId'])
         mqmd_dict['BackoutCount'] = msg_desc['BackoutCount']
         mqmd_dict['ReplyToQ'] = msg_desc['ReplyToQ'].strip()
         mqmd_dict['ReplyToQMgr'] = msg_desc['ReplyToQMgr'].strip()
-        mqmd_dict['UserIdentifier'] = make_printable(msg_desc['UserIdentifier'])
-        mqmd_dict['AccountingToken'] = make_printable(msg_desc['AccountingToken'])
-        mqmd_dict['ApplIdentityData'] = make_printable(msg_desc['ApplIdentityData'])
+        mqmd_dict['UserIdentifier'] = \
+            make_printable(msg_desc['UserIdentifier'])
+        mqmd_dict['AccountingToken'] = \
+            make_printable(msg_desc['AccountingToken'])
+        mqmd_dict['ApplIdentityData'] = \
+            make_printable(msg_desc['ApplIdentityData'])
         mqmd_dict['PutApplName'] = make_printable(msg_desc['PutApplName'])
         mqmd_dict['PutDate'] = msg_desc['PutDate']
         mqmd_dict['PutTime'] = msg_desc['PutTime']
@@ -326,15 +390,18 @@ def make_mqmd(msg_desc, mqmd_dicts, pretty_mqmd, make_mqmd_printable):
         mqmd_dict['MsgSeqNumber'] = msg_desc['MsgSeqNumber']
         mqmd_dict['Offset'] = msg_desc['Offset']
 
-    else:    
+    else:
         mqmd_dict['MsgId'] = binascii.hexlify(msg_desc['MsgId'])
         mqmd_dict['CorrelId'] = binascii.hexlify(msg_desc['CorrelId'])
         mqmd_dict['BackoutCount'] = msg_desc['BackoutCount']
         mqmd_dict['ReplyToQ'] = msg_desc['ReplyToQ'].strip()
         mqmd_dict['ReplyToQMgr'] = msg_desc['ReplyToQMgr'].strip()
-        mqmd_dict['UserIdentifier'] = binascii.hexlify(msg_desc['UserIdentifier'])
-        mqmd_dict['AccountingToken'] = binascii.hexlify(msg_desc['AccountingToken'])
-        mqmd_dict['ApplIdentityData'] = binascii.hexlify(msg_desc['ApplIdentityData'])
+        mqmd_dict['UserIdentifier'] = \
+            binascii.hexlify(msg_desc['UserIdentifier'])
+        mqmd_dict['AccountingToken'] = \
+            binascii.hexlify(msg_desc['AccountingToken'])
+        mqmd_dict['ApplIdentityData'] = \
+            binascii.hexlify(msg_desc['ApplIdentityData'])
         mqmd_dict['PutApplName'] = binascii.hexlify(msg_desc['PutApplName'])
         mqmd_dict['PutDate'] = msg_desc['PutDate']
         mqmd_dict['PutTime'] = msg_desc['PutTime']
@@ -342,30 +409,35 @@ def make_mqmd(msg_desc, mqmd_dicts, pretty_mqmd, make_mqmd_printable):
         mqmd_dict['GroupId'] = binascii.hexlify(msg_desc['GroupId'])
         mqmd_dict['MsgSeqNumber'] = msg_desc['MsgSeqNumber']
         mqmd_dict['Offset'] = msg_desc['Offset']
-    
+
     return mqmd_dict
+
 
 # prints XML stream
 def print_xml_single_instance_mode(server, event):
-    
+
     print "<stream><event><data>%s</data><host>%s</host></event></stream>" % (
         encodeXMLText(event), server)
-    
+
+
 # prints XML stream
 def print_xml_multi_instance_mode(server, event, stanza):
-    
-    print "<stream><event stanza=""%s""><data>%s</data><host>%s</host></event></stream>" % (
-        stanza, encodeXMLText(event), server)
-    
+
+    print "<stream><event stanza=""%s""><data>%s</data><host>%s</host>\
+</event></stream>" % (stanza, encodeXMLText(event), server)
+
+
 # prints simple stream
 def print_simple(s):
     print "%s\n" % s
-                             
-#HELPER FUNCTIONS
-    
+
+
+# HELPER FUNCTIONS
 # prints XML stream
 def print_xml_stream(s):
-    print "<stream><event unbroken=\"1\"><data>%s</data><done/></event></stream>" % encodeXMLText(s)
+    print "<stream><event unbroken=\"1\"><data>%s</data><done/></event>\
+</stream>" % encodeXMLText(s)
+
 
 def encodeXMLText(text):
     text = text.replace("&", "&amp;")
@@ -376,91 +448,96 @@ def encodeXMLText(text):
     text = text.replace("\n", "")
     return text
 
-            
+
 class BrokerEventResponseHandler:
     """
-    IBM Message Broker Monitoring event handler.   
-    
-    This addon parses a Message Broker monitoring event and extracts the required fields.  
-    
-    include_complex_top_level = true/false - Include the complex type top level element when logged.
-    include_bitstream = true/false - Include the bitstream (base64 or blob) in the splunk event.
-    write_events = true/false - Write out the events to disk.  
-    gzip_events = true/false - Gzip the events written to disk.
-    write_events_folder = "/opt/esb/brokerevents"- Directory to which events must be written.    
-    """   
-    
-    def __init__(self,**args):
+    include_complex_top_level = true/false
+    include_bitstream = true/false
+    write_events = true/false
+    gzip_events = true/false
+    write_events_folder = "/opt/esb/brokerevents"
+    """
+
+    def __init__(self, **args):
         self.args = args
-        
-        self.include_complex_top_level = False
+
+        self.include_complex_top_level = True
         if self.args.has_key("include_complex_top_level"):
-            if self.args["include_complex_top_level"].lower().strip() == "false":
+            if self.args["include_complex_top_level"].lower().strip() == \
+                    "false":
                 self.include_complex_top_level = False
             else:
                 self.include_complex_top_level = True
-        
-        self.include_bitstream = False
+
+        self.include_bitstream = True
         if self.args.has_key("include_bitstream"):
             if self.args["include_bitstream"].lower().strip() == "false":
                 self.include_bitstream = False
             else:
                 self.include_bitstream = True
-        
-        self.write_events = True 
+
+        self.write_events = False
         if self.args.has_key("write_events"):
-            if self.args["write_events"].lower().strip() == "false":
-                self.write_events = False
-            else:
+            if self.args["write_events"].lower().strip() == "true":
                 self.write_events = True
-            
-        self.gzip_events = True 
+            else:
+                self.write_events = False
+
+        self.gzip_events = True
         if self.args.has_key("gzip_events"):
             if self.args["gzip_events"].lower().strip() == "false":
                 self.gzip_events = False
             else:
                 self.gzip_events = True
-        
+
         self.write_events_folder = "/opt/splunk/esb/brokerevents"
         if self.args.has_key("write_events_folder"):
             self.write_events_folder = self.args["write_events_folder"]
-        
+
         self.use_event_time = True
         if self.args.has_key("use_event_time"):
             if self.args["use_event_time"].lower().strip() == "false":
                 self.use_event_time = False
             else:
                 self.use_event_time = True
-                
-        self.regex = re.compile(r"/[A-Za-z0-9]*:")   
-        
-    def __call__(self, splunk_host, queue_manager_name, queue, msg_data, msg_desc, from_trigger, **kw):        
-        
-        splunk_event =""
+
+        self.regex = re.compile(r"/[A-Za-z0-9]*:")
+
+    def __call__(self, splunk_host, queue_manager_name, queue, msg_data, 
+                 msg_desc, from_trigger, **kw):
+
+        splunk_event = ""
         event_file_name = ""
-        
+
         queue_manager_name_str = 'queue_manager="%s" ' % queue_manager_name
         queue_str = 'queue="%s" ' % queue
         host = splunk_host + " "
-        process = "mqinput(%i): " % os.getpid() 
-        
+        process = "mqinput(%i): " % os.getpid()
+
         ev_pos = msg_data.find(":event")
         start_pos = msg_data.rfind("<", 0, ev_pos)
 
         msg_data = msg_data[start_pos:]
         logging.debug("Msg data: [%s]" % msg_data[:100])
         index_time_o = datetime.datetime.now()
-        index_time = "[" + index_time_o.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3] + " " + time.strftime("%z") + "] "      
-        
+        index_time = "[" + \
+            index_time_o.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3] + \
+            " " + time.strftime("%z") + "] "
+
         if self.write_events:
             try:
                 date_s = time.strftime("%Y%m%d")
-                cur_folder = os.path.join(os.path.join(os.path.join(self.write_events_folder, queue_manager_name), queue), date_s) 
-                
+                cur_folder = \
+                    os.path.join(os.path.join(
+                        os.path.join(
+                            self.write_events_folder, queue_manager_name),
+                        queue), date_s)
+
                 if not os.path.exists(cur_folder):
                     os.makedirs(cur_folder)
-                
-                file_name = "BrokerEvent_" +  binascii.hexlify(msg_desc["MsgId"]) + ".xml"
+
+                file_name = "BrokerEvent_" + \
+                    binascii.hexlify(msg_desc["MsgId"]) + ".xml"
                 full_file_name = os.path.join(cur_folder, file_name)
                 if self.gzip_events:
                     f = gzip.open(full_file_name + ".gz", 'wb')
@@ -470,45 +547,60 @@ class BrokerEventResponseHandler:
                     f = open(full_file_name, "w")
                     f.write(msg_data)
                     f.close()
-                event_file_name = ' event_file_name="%s"'  % full_file_name
+                event_file_name = ' event_file_name="%s"' % \
+                    full_file_name
             except Exception, ex:
                 logging.error("Failed to write event message. " + str(ex))
-        
-        try: 
-               
-            WMBNAMESPACE = u"http://www.ibm.com/xmlns/prod/websphere/messagebroker/6.1.0/monitoring/event"
+
+        try:
+
+            WMBNAMESPACE = \
+                u"http://www.ibm.com/xmlns/prod/websphere/messagebroker/6.1.0/monitoring/event"
             nss = {'wmb': WMBNAMESPACE}
-            
+
             doc = lxml.etree.fromstring(msg_data)
-            
+
             if self.use_event_time:
-                nl = doc.xpath(u"//wmb:eventSequence[1]/@wmb:creationTime", namespaces=nss)
+                nl = doc.xpath(u"//wmb:eventSequence[1]/@wmb:creationTime",
+                               namespaces=nss)
                 if len(nl) > 0:
                     "2015-05-17T06:28:18.535424Z"
-                    event_time = datetime.datetime.strptime(nl[0].replace("T", " ").replace("Z", "GMT"), "%Y-%m-%d %H:%M:%S.%f%Z")
-    
-                    index_time_o = event_time - datetime.timedelta(seconds=time.timezone)
-        
+                    event_time = \
+                        datetime.datetime.strptime(
+                            nl[0].replace("T", " ").replace("Z", "GMT"),
+                            "%Y-%m-%d %H:%M:%S.%f%Z")
+
+                    index_time_o = event_time - \
+                        datetime.timedelta(seconds=time.timezone)
+
                     h_secs = msg_desc["PutTime"][6:]
-                    index_time = "[" + index_time_o.strftime("%Y-%m-%d %H:%M:%S") + "." + h_secs + "0 " +  time.strftime("%z") + "] "
-            
+                    index_time = "[" + \
+                        index_time_o.strftime("%Y-%m-%d %H:%M:%S") + "." + \
+                        h_secs + "0 " + time.strftime("%z") + "] "
+
             broker = ""
-            nl = doc.xpath(u"//wmb:messageFlowData[1]/wmb:broker/@wmb:name", namespaces=nss)
+            nl = doc.xpath(u"//wmb:messageFlowData[1]/wmb:broker/@wmb:name",
+                           namespaces=nss)
             if len(nl) > 0:
                 broker = 'broker="%s" ' % nl[0]
-                
+
             exec_group = ""
-            nl = doc.xpath(u"//wmb:messageFlowData[1]/wmb:executionGroup/@wmb:name", namespaces=nss)
+            nl = doc.xpath(
+                u"//wmb:messageFlowData[1]/wmb:executionGroup/@wmb:name",
+                namespaces=nss)
             if len(nl) > 0:
                 exec_group = 'execgroup="%s" ' % nl[0]
-                
+
             flow = ""
-            nl = doc.xpath(u"//wmb:messageFlowData[1]/wmb:messageFlow/@wmb:name", namespaces=nss)
+            nl = doc.xpath(
+                u"//wmb:messageFlowData[1]/wmb:messageFlow/@wmb:name",
+                namespaces=nss)
             if len(nl) > 0:
                 flow = 'flow="%s" ' % nl[0]
-                         
+
             node_details = ""
-            nl = doc.xpath(u"//wmb:messageFlowData[1]/wmb:node", namespaces=nss)
+            nl = doc.xpath(u"//wmb:messageFlowData[1]/wmb:node",
+                           namespaces=nss)
             if len(nl) > 0:
                 node_details = ""
                 if nl[0].attrib.has_key("{%s}nodeLabel" % WMBNAMESPACE):
@@ -521,81 +613,101 @@ class BrokerEventResponseHandler:
 
                 if nl[0].attrib.has_key("{%s}terminal" % WMBNAMESPACE):
                     node_terminal = nl[0].attrib["{%s}terminal" % WMBNAMESPACE]
-                    node_details = node_details + 'node_terminal="%s" ' % node_terminal
-                #node_details = 'node="%s" node_type="%s" node_terminal="%s"' % (node_label, node_type, node_terminal)
-    
-            
+                    node_details = node_details + 'node_terminal="%s" ' % \
+                        node_terminal
+                # node_details = 'node="%s" node_type="%s" 
+                # node_terminal="%s"' % (node_label, node_type, node_terminal)
+
             complex_content = ''
-            nl = doc.xpath(u"//wmb:applicationData/wmb:complexContent", namespaces=nss)
+            nl = doc.xpath(u"//wmb:applicationData/wmb:complexContent",
+                           namespaces=nss)
             if len(nl) > 0:
                 for n in nl:
                     path = ""
-                    
+
                     for c in n:
                         print n.attrib
                         c_name = n.xpath("@wmb:elementName", namespaces=nss)
                         top_level_name = ""
                         if len(c_name):
                             top_level_name = c_name[0]
-                        
+
                         tree = lxml.etree.ElementTree(c)
                         for e in tree.iter():
                             if e.text is not None:
                                 if e.text.strip() != "":
                                     path = tree.getpath(e)
                                     path = self.regex.sub("/", path)
-                                    
+
                                     if not self.include_complex_top_level:
-                                        path = path.replace("/%s/" % top_level_name, "")
+                                        path = \
+                                            path.replace(
+                                                "/%s/" % top_level_name,
+                                                "")
                                     else:
                                         if path[0] == "/":
                                             path = path[1:]
-                                    
+
                                     path = path.replace("/", ".")
-    
-                                    complex_content = complex_content + '%s="%s" ' % (path, e.text.strip())
-            
+
+                                    complex_content = complex_content + \
+                                        '%s="%s" ' % (path, e.text.strip())
+
             simple_content = ""
-            nl = doc.xpath(u"//wmb:applicationData/wmb:simpleContent", namespaces=nss)
+            nl = doc.xpath(u"//wmb:applicationData/wmb:simpleContent",
+                           namespaces=nss)
             if len(nl) > 0:
                 nameTuple = u"{%s}name" % WMBNAMESPACE
                 valueTuple = u"{%s}value" % WMBNAMESPACE
-                
+
                 for n in nl:
                     name = None
                     value = None
                     if n.attrib.has_key(nameTuple):
-                        name = n.attrib[nameTuple] 
+                        name = n.attrib[nameTuple]
                     if n.attrib.has_key(valueTuple):
                         value = n.attrib[valueTuple]
-                   
+
                     if value is not None:
-                        simple_content = simple_content + '%s="%s" ' % (name, value.strip())
-                        
+                        simple_content = simple_content + \
+                            '%s="%s" ' % (name, value.strip())
+
             bitstream_data = ""
             bitstream_encoding = ""
-            logging.debug("Include bitstream:" + str(self.include_bitstream))           
+            # arb_text = "include_bitstream={} ".format(self.include_bitstream)
+            logging.error("Include bitstream:" + str(self.include_bitstream))
+            # sys.stderr.write("Include bitstream:" + \
+            # str(self.include_bitstream) + "\n")
             if self.include_bitstream:
                 nl = doc.xpath("//wmb:bitstream", namespaces=nss)
                 logging.error("len is:" + str(len(nl)))
                 if len(nl) > 0:
                     encoding_key = "{%s}encoding" % WMBNAMESPACE
-                    if nl[0].attrib.has_key(encoding_key): 
+                    if nl[0].attrib.has_key(encoding_key):
                         bitstream_encoding = 'bitstream_encoding="%s" '
-                        bitstream_encoding = bitstream_encoding % (nl[0].attrib[encoding_key])
-                    bitstream_data = 'bitstream_data="{}" ' 
-                    bitstream_data = bitstream_data.format(nl[0].text) 
-            #handle trigger
+                        bitstream_encoding = \
+                            bitstream_encoding % (nl[0].attrib[encoding_key])
+                    bitstream_data = 'bitstream_data="{}" '
+                    bitstream_data = bitstream_data.format(nl[0].text)
+            # handle trigger
             if from_trigger:
                 pass
-            else:  
-                splunk_event = splunk_event + index_time + host + process + queue_manager_name_str + queue_str + broker + exec_group + flow + node_details +  complex_content + simple_content + event_file_name + bitstream_encoding + bitstream_data 
+            else:
+                splunk_event = splunk_event + index_time + host + \
+                               process + queue_manager_name_str + queue_str + \
+                               broker + exec_group + flow + node_details + \
+                               complex_content + simple_content + \
+                               event_file_name + bitstream_encoding + \
+                               bitstream_data
                 print_xml_single_instance_mode(splunk_host, splunk_event)
-                
+
         except Exception, ex:
             logging.error("Exception occured! Exception:" + str(ex))
-            splunk_event = splunk_event + index_time + host + process + queue_manager_name_str + queue_str + event_file_name + ' error="Exception occured while processing event. Exception Text: %s"' % (str(ex))
+            splunk_event = splunk_event + index_time + host + process + \
+                queue_manager_name_str + queue_str + event_file_name + \
+                ' error="Exception occured while processing event. Exception Text: %s"' % (str(ex))
             print_xml_single_instance_mode(splunk_host, splunk_event)
+
 
 #####################################
 # Channel Status Response handlers
@@ -603,18 +715,21 @@ class BrokerEventResponseHandler:
 
 
 class DefaultChannelStatusResponseHandler:
-    
+
     """
     The default channel status handler.  Uses PCF to query the channel status.
-    
-    DefaultChannelStatusHandler arguments: 
-        include_zero_values=true/false - Include values that are set to zero or default values in the event.  Default: false
-        textual_values=true/false - Include the textual description for channel status parameters.  Default: true
+
+    DefaultChannelStatusHandler arguments:
+        include_zero_values=true/false - Include values that are set to
+        zero or default values in the event.  Default: false
+
+        textual_values=true/false - Include the textual description for
+        channel status parameters.  Default: true
     """
-    
-    def __init__(self,**args):
+
+    def __init__(self, **args):
         self.args = args
-    
+
         if self.args.has_key("include_zero_values"):
             if self.args["include_zero_values"].lower().strip() == "true":
                 self.include_zero_values = True
@@ -622,8 +737,7 @@ class DefaultChannelStatusResponseHandler:
                 self.include_zero_values = False
         else:
             self.include_zero_values = False
-        
-    
+
         if self.args.has_key("textual_values"):
             if self.args["textual_values"].lower().strip() == "true":
                 self.textual_values = True
@@ -631,48 +745,57 @@ class DefaultChannelStatusResponseHandler:
                 self.textual_values = False
         else:
             self.textual_values = True
-        
+
         if self.textual_values:
-            self.channel_compression_descs = {pymqi.CMQXC.MQCOMPRESS_NOT_AVAILABLE: "NOT_AVAILABLE" , 
-                                              pymqi.CMQXC.MQCOMPRESS_NONE: "NONE",
-                                              pymqi.CMQXC.MQCOMPRESS_RLE: "RLE",
-                                              pymqi.CMQXC.MQCOMPRESS_ZLIBFAST: "ZLIBFAST",
-                                              pymqi.CMQXC.MQCOMPRESS_ZLIBHIGH: "ZLIBHIGH",
-                                              pymqi.CMQXC.MQCOMPRESS_SYSTEM: "SYSTEM",
-                                              pymqi.CMQXC.MQCOMPRESS_ANY: "ANY" }
-            self.channel_monitoring_descs = {pymqi.CMQC.MQMON_LOW: "LOW", 
-                                             pymqi.CMQC.MQMON_MEDIUM: "MEDIUM", 
-                                             pymqi.CMQC.MQMON_HIGH: "HIGH", 
-                                             pymqi.CMQC.MQMON_OFF: "OFF", 
-                                             pymqi.CMQC.MQMON_Q_MGR: "QMGR"}
-            self.channel_substate_descs =   {pymqi.CMQCFC.MQCHSSTATE_OTHER : "OTHER",
-                                             pymqi.CMQCFC.MQCHSSTATE_END_OF_BATCH : "END_OF_BATCH",
-                                             pymqi.CMQCFC.MQCHSSTATE_SENDING : "SENDING",
-                                             pymqi.CMQCFC.MQCHSSTATE_RECEIVING : "RECEIVING",
-                                             pymqi.CMQCFC.MQCHSSTATE_SERIALIZING : "SERIALIZING",
-                                             pymqi.CMQCFC.MQCHSSTATE_RESYNCHING : "RESYNCHING",
-                                             pymqi.CMQCFC.MQCHSSTATE_HEARTBEATING : "HEARTBEATING",
-                                             pymqi.CMQCFC.MQCHSSTATE_IN_SCYEXIT : "IN_SCYEXIT",
-                                             pymqi.CMQCFC.MQCHSSTATE_IN_RCVEXIT : "IN_RCVEXIT",
-                                             pymqi.CMQCFC.MQCHSSTATE_IN_SENDEXIT : "IN_SENDEXIT",
-                                             pymqi.CMQCFC.MQCHSSTATE_IN_MSGEXIT : "IN_MSGEXIT",
-                                             pymqi.CMQCFC.MQCHSSTATE_IN_MREXIT : "IN_MREXIT",
-                                             pymqi.CMQCFC.MQCHSSTATE_IN_CHADEXIT : "IN_CHADEXIT",
-                                             pymqi.CMQCFC.MQCHSSTATE_NET_CONNECTING : "NET_CONNECTING",
-                                             pymqi.CMQCFC.MQCHSSTATE_SSL_HANDSHAKING : "SSL_HANDSHAKING",
-                                             pymqi.CMQCFC.MQCHSSTATE_NAME_SERVER : "NAME_SERVER",
-                                             pymqi.CMQCFC.MQCHSSTATE_IN_MQPUT : "IN_MQPUT",
-                                             pymqi.CMQCFC.MQCHSSTATE_IN_MQGET : "IN_MQGET",
-                                             pymqi.CMQCFC.MQCHSSTATE_IN_MQI_CALL : "IN_MQI_CALL",
-                                             pymqi.CMQCFC.MQCHSSTATE_COMPRESSING : "COMPRESSING"}
-                 
-            self.channel_status_descs = {pymqi.CMQCFC.MQCHS_BINDING: "BINDING",
-                                        pymqi.CMQCFC.MQCHS_STARTING: "STARTING",
-                                        pymqi.CMQCFC.MQCHS_RUNNING: "RUNNING",
-                                        pymqi.CMQCFC.MQCHS_STOPPING: "STOPPING",
-                                        pymqi.CMQCFC.MQCHS_RETRYING: "RETRYING"}
-            
-    def __call__(self, splunk_host, queue_manager_name, conf_channel_name, pcf_response, **kw):        
+            self.channel_compression_descs = {
+                pymqi.CMQXC.MQCOMPRESS_NOT_AVAILABLE: "NOT_AVAILABLE",
+                pymqi.CMQXC.MQCOMPRESS_NONE: "NONE",
+                pymqi.CMQXC.MQCOMPRESS_RLE: "RLE",
+                pymqi.CMQXC.MQCOMPRESS_ZLIBFAST: "ZLIBFAST",
+                pymqi.CMQXC.MQCOMPRESS_ZLIBHIGH: "ZLIBHIGH",
+                pymqi.CMQXC.MQCOMPRESS_SYSTEM: "SYSTEM",
+                pymqi.CMQXC.MQCOMPRESS_ANY: "ANY"
+                }
+            self.channel_monitoring_descs = {
+                pymqi.CMQC.MQMON_LOW: "LOW",
+                pymqi.CMQC.MQMON_MEDIUM: "MEDIUM",
+                pymqi.CMQC.MQMON_HIGH: "HIGH",
+                pymqi.CMQC.MQMON_OFF: "OFF",
+                pymqi.CMQC.MQMON_Q_MGR: "QMGR"
+                }
+            self.channel_substate_descs = {
+                pymqi.CMQCFC.MQCHSSTATE_OTHER: "OTHER",
+                pymqi.CMQCFC.MQCHSSTATE_END_OF_BATCH: "END_OF_BATCH",
+                pymqi.CMQCFC.MQCHSSTATE_SENDING: "SENDING",
+                pymqi.CMQCFC.MQCHSSTATE_RECEIVING: "RECEIVING",
+                pymqi.CMQCFC.MQCHSSTATE_SERIALIZING: "SERIALIZING",
+                pymqi.CMQCFC.MQCHSSTATE_RESYNCHING: "RESYNCHING",
+                pymqi.CMQCFC.MQCHSSTATE_HEARTBEATING: "HEARTBEATING",
+                pymqi.CMQCFC.MQCHSSTATE_IN_SCYEXIT: "IN_SCYEXIT",
+                pymqi.CMQCFC.MQCHSSTATE_IN_RCVEXIT: "IN_RCVEXIT",
+                pymqi.CMQCFC.MQCHSSTATE_IN_SENDEXIT: "IN_SENDEXIT",
+                pymqi.CMQCFC.MQCHSSTATE_IN_MSGEXIT: "IN_MSGEXIT",
+                pymqi.CMQCFC.MQCHSSTATE_IN_MREXIT: "IN_MREXIT",
+                pymqi.CMQCFC.MQCHSSTATE_IN_CHADEXIT: "IN_CHADEXIT",
+                pymqi.CMQCFC.MQCHSSTATE_NET_CONNECTING: "NET_CONNECTING",
+                pymqi.CMQCFC.MQCHSSTATE_SSL_HANDSHAKING: "SSL_HANDSHAKING",
+                pymqi.CMQCFC.MQCHSSTATE_NAME_SERVER: "NAME_SERVER",
+                pymqi.CMQCFC.MQCHSSTATE_IN_MQPUT: "IN_MQPUT",
+                pymqi.CMQCFC.MQCHSSTATE_IN_MQGET: "IN_MQGET",
+                pymqi.CMQCFC.MQCHSSTATE_IN_MQI_CALL: "IN_MQI_CALL",
+                pymqi.CMQCFC.MQCHSSTATE_COMPRESSING: "COMPRESSING"
+                }
+
+            self.channel_status_descs = {
+                pymqi.CMQCFC.MQCHS_BINDING: "BINDING",
+                pymqi.CMQCFC.MQCHS_STARTING: "STARTING",
+                pymqi.CMQCFC.MQCHS_RUNNING: "RUNNING",
+                pymqi.CMQCFC.MQCHS_STOPPING: "STOPPING",
+                pymqi.CMQCFC.MQCHS_RETRYING: "RETRYING"
+                }
+
+    def __call__(self, splunk_host, queue_manager_name,
+                 conf_channel_name, pcf_response, **kw):
         """
 CHANNEL(LDB0.TO.LDB1)                   CHLTYPE(SDR)
 BATCHES(457)                            BATCHSZ(50)
@@ -697,7 +820,7 @@ SSLKEYTI( )                             SSLPEER( )
 SSLRKEYS(0)                             STATUS(RUNNING)
 STOPREQ(NO)                             SUBSTATE(MQGET)
 XBATCHSZ(2,2)                           XMITQ(LDB1)
-XQTIME(3151,1099)                    
+XQTIME(3151,1099)
 
 CHANNEL(LDB0.TO.LDB1)                   CHLTYPE(SDR)
 BATCHES(1)                              BATCHSZ(50)
@@ -722,7 +845,7 @@ SSLKEYTI( )                             SSLPEER( )
 SSLRKEYS(0)                             STATUS(RETRYING)
 STOPREQ(NO)                             SUBSTATE( )
 XBATCHSZ(3,3)                           XMITQ(LDB1)
-XQTIME(0,0)                          
+XQTIME(0,0)
 
 MQIACH_BYTES_RECEIVED:236
 MQIACH_BATCHES:0
@@ -738,30 +861,30 @@ MQIACH_HB_INTERVAL:300
 MQIACH_NETWORK_TIME_INDICATOR:[0L, 0L]
 MQIACH_HDR_COMPRESSION:[0L, 0L]
 MQIACH_MSG_COMPRESSION:[2L, 0L]
-MQCACH_CHANNEL_NAME:LDB0.TO.LDB1        
-MQCACH_XMIT_Q_NAME:LDB1                                            
+MQCACH_CHANNEL_NAME:LDB0.TO.LDB1
+MQCACH_XMIT_Q_NAME:LDB1
 MQCACH_CONNECTION_NAME:127.0.0.1(1415)
 MQCACH_SSL_CERT_ISSUER_NAME:
 MQIACH_CHANNEL_SUBSTATE:1600
 MQIACH_SSL_KEY_RESETS:0
 MQCACH_LOCAL_ADDRESS:127.0.0.1(41241)
 MQCACH_LAST_LUWID:80679A56C21D0010
-MQCACH_LAST_MSG_TIME:        
-MQCACH_LAST_MSG_DATE:            
+MQCACH_LAST_MSG_TIME:
+MQCACH_LAST_MSG_DATE:
 MQIACH_EXIT_TIME_INDICATOR:[0L, 0L]
 MQIACH_BATCH_SIZE_INDICATOR:[0L, 0L]
 MQCACH_CHANNEL_START_TIME:15.16.27
-MQCACH_CHANNEL_START_DATE:2016-01-17  
-MQCACH_MCA_JOB_NAME:0000740B00000001            
+MQCACH_CHANNEL_START_DATE:2016-01-17
+MQCACH_MCA_JOB_NAME:0000740B00000001
 MQIACH_COMPRESSION_RATE:[0L, 0L]
 MQIACH_COMPRESSION_TIME:[0L, 0L]
 MQCACH_SSL_SHORT_PEER_NAME:
 MQCACH_CURRENT_LUWID:80679A56011E0010
 MQIACH_BATCH_SIZE:50
-MQRC_HANDLE_NOT_AVAILABLE:LDB1                                            
-MQCACH_SSL_KEY_RESET_DATE:            
+MQRC_HANDLE_NOT_AVAILABLE:LDB1
+MQCACH_SSL_KEY_RESET_DATE:
 MQIACH_CHANNEL_TYPE:1
-MQCACH_LAST_USED:        
+MQCACH_LAST_USED:
 MQIACH_CHANNEL_INSTANCE_TYPE:1011
 MQIACH_CHANNEL_STATUS:3
 MQIACH_INDOUBT_STATUS:0
@@ -794,10 +917,10 @@ MQCHSSTATE_IN_MQGET = 1600
 MQCHSSTATE_IN_MQI_CALL = 1700
 MQCHSSTATE_COMPRESSING = 1800
 
-        """      
-        
+        """
+
         for channel_info in pcf_response:
-         
+
             channel_name = None
             channel_monitoring = None
             network_time = None
@@ -816,14 +939,14 @@ MQCHSSTATE_COMPRESSING = 1800
             comp_header_2 = None
             comp_message = None
             comp_message_1 = None
-            comp_message_2 = None 
+            comp_message_2 = None
             comp_rate = None
             comp_rate_short = None
             comp_rate_long = None
             comp_time = None
             comp_time_short = None
             comp_time_long = None
-            
+
             batches = None
             batches_size_ind = None
             batches_size_ind_short = None
@@ -836,227 +959,300 @@ MQCHSSTATE_COMPRESSING = 1800
             current_messages = None
             messages = None
             channel_substate = None
-            
+
             last_message_time = None
             last_message_date = None
-            
+
             if channel_info.has_key(pymqi.CMQCFC.MQCACH_CHANNEL_NAME):
-                
+
                 splunk_event = ""
-                index_time = "[" + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3] + " " + time.strftime("%z") + "] "   
-    
-                queue_manager_name_str = "queue_manager=\"%s\" " % queue_manager_name
-                
+                index_time = "[" + \
+                    datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3] + \
+                    " " + time.strftime("%z") + "] "
+
+                queue_manager_name_str = \
+                    "queue_manager=\"%s\" " % queue_manager_name
+
                 host = splunk_host + " "
-                process = "mqchs(%i): " % os.getpid() 
-                
-                channel_name =  channel_info[pymqi.CMQCFC.MQCACH_CHANNEL_NAME].strip(   )
-                logging.debug("Doing channel status for channel [%s]" % channel_name)
-                
+                process = "mqchs(%i): " % os.getpid()
+
+                channel_name = \
+                    channel_info[pymqi.CMQCFC.MQCACH_CHANNEL_NAME].strip()
+                logging.debug("Doing channel status for channel [%s]" %
+                              channel_name)
+
                 conf_channel_str = ""
                 if conf_channel_name != channel_name:
-                    conf_channel_str = "config_channel=\"%s\" "  % conf_channel_name
-                
-                splunk_event = splunk_event + index_time + host + process + queue_manager_name_str + conf_channel_str
-                
+                    conf_channel_str = \
+                        "config_channel=\"%s\" " % conf_channel_name
+
+                splunk_event = splunk_event + index_time + host + \
+                    process + queue_manager_name_str + conf_channel_str
+
                 splunk_event = splunk_event + "CHANNEL=\"%s\" " % channel_name
-                
-                
+
+
                 if channel_info.has_key(pymqi.CMQCFC.MQIACH_CHANNEL_STATUS):
-                    channel_status =  channel_info[pymqi.CMQCFC.MQIACH_CHANNEL_STATUS]
-                    
+                    channel_status = \
+                        channel_info[pymqi.CMQCFC.MQIACH_CHANNEL_STATUS]
+
                     if self.textual_values:
-                        splunk_event = splunk_event + "STATUS=\"%s\" " % self.channel_status_descs[channel_status]
+                        splunk_event = splunk_event + \
+                            "STATUS=\"%s\" " % \
+                            self.channel_status_descs[channel_status]
                     else:
-                        splunk_event = splunk_event + "STATUS=%d " % channel_status                     
-                
+                        splunk_event = splunk_event + "STATUS=%d " % \
+                                        channel_status
+
                 if channel_info.has_key(pymqi.CMQCFC.MQIACH_CHANNEL_SUBSTATE):
-                    channel_substate =  channel_info[pymqi.CMQCFC.MQIACH_CHANNEL_SUBSTATE]  
-                    
+                    channel_substate = \
+                        channel_info[pymqi.CMQCFC.MQIACH_CHANNEL_SUBSTATE]
+
                     if self.textual_values:
-                        splunk_event = splunk_event + "SUBSTATE=\"%s\" " % self.channel_substate_descs[channel_substate]
+                        splunk_event = splunk_event + \
+                            "SUBSTATE=\"%s\" " % \
+                            self.channel_substate_descs[channel_substate]
                     else:
-                        splunk_event = splunk_event + "SUBSTATE=%d " % channel_substate
+                        splunk_event = splunk_event + \
+                            "SUBSTATE=%d " % channel_substate
 
                 if channel_info.has_key(pymqi.CMQC.MQIA_MONITORING_CHANNEL):
-                    channel_monitoring =  channel_info[pymqi.CMQC.MQIA_MONITORING_CHANNEL]
-                    
+                    channel_monitoring = \
+                        channel_info[pymqi.CMQC.MQIA_MONITORING_CHANNEL]
+
                     if self.include_zero_values or channel_monitoring > 0:
-                        
+
                         if self.textual_values:
-                            splunk_event = splunk_event + "MONCHL=\"%s\" " % self.channel_monitoring_descs[channel_monitoring]
+                            splunk_event = splunk_event + \
+                                "MONCHL=\"%s\" " % \
+                                self.channel_monitoring_descs[channel_monitoring]
                         else:
-                            splunk_event = splunk_event + "MONCHL=%d " % channel_monitoring
-                
+                            splunk_event = splunk_event + \
+                                "MONCHL=%d " % channel_monitoring
+
                 logging.debug("After MONCHL.")
-                
+
                 if channel_info.has_key(pymqi.CMQCFC.MQIACH_BYTES_RCVD):
-                    bytes_received =  channel_info[pymqi.CMQCFC.MQIACH_BYTES_RCVD]
-                    
-                    splunk_event = splunk_event + "BYTSRCVD=%d " % bytes_received
-                
+                    bytes_received = \
+                        channel_info[pymqi.CMQCFC.MQIACH_BYTES_RCVD]
+
+                    splunk_event = \
+                        splunk_event + "BYTSRCVD=%d " % bytes_received
+
                 if channel_info.has_key(pymqi.CMQCFC.MQIACH_BYTES_SENT):
-                    bytes_sent =  channel_info[pymqi.CMQCFC.MQIACH_BYTES_SENT]
-                    
+                    bytes_sent = channel_info[pymqi.CMQCFC.MQIACH_BYTES_SENT]
+
                     splunk_event = splunk_event + "BYTSSENT=%d " % bytes_sent
-                    
+
                 logging.debug("After BYTSSENT.")
-               
+
                 if channel_info.has_key(pymqi.CMQCFC.MQIACH_BUFFERS_RCVD):
-                    buffers_received =  channel_info[pymqi.CMQCFC.MQIACH_BUFFERS_RCVD] 
-                    
-                    splunk_event = splunk_event + "BUFSRCVD=%d " % buffers_received
-                
+                    buffers_received = \
+                        channel_info[pymqi.CMQCFC.MQIACH_BUFFERS_RCVD]
+
+                    splunk_event = splunk_event + \
+                        "BUFSRCVD=%d " % buffers_received
+
                 if channel_info.has_key(pymqi.CMQCFC.MQIACH_BUFFERS_SENT):
-                    buffers_sent =  channel_info[pymqi.CMQCFC.MQIACH_BUFFERS_SENT] 
-                    
+                    buffers_sent = \
+                        channel_info[pymqi.CMQCFC.MQIACH_BUFFERS_SENT]
+
                     splunk_event = splunk_event + "BUFSSENT=%d " % buffers_sent
-                    
-                    
+
                 if channel_info.has_key(pymqi.CMQCFC.MQIACH_BATCHES):
-                    batches =  channel_info[pymqi.CMQCFC.MQIACH_BATCHES] 
-                    
+                    batches = channel_info[pymqi.CMQCFC.MQIACH_BATCHES]
+
                     splunk_event = splunk_event + "BATCHES=%d " % batches
-                
+
                 logging.debug("After BATCHES.")
                 if channel_info.has_key(pymqi.CMQCFC.MQIACH_BATCH_SIZE):
-                    batch_size =  channel_info[pymqi.CMQCFC.MQIACH_BATCH_SIZE] 
-                    
+                    batch_size = channel_info[pymqi.CMQCFC.MQIACH_BATCH_SIZE]
+
                     splunk_event = splunk_event + "BATCHSZ=%d " % batch_size
-                
+
                 if channel_info.has_key(pymqi.CMQCFC.MQIACH_BATCH_SIZE_INDICATOR):
-                    batches_size_ind =  channel_info[pymqi.CMQCFC.MQIACH_BATCH_SIZE_INDICATOR] 
-                    
+                    batches_size_ind = \
+                        channel_info[pymqi.CMQCFC.MQIACH_BATCH_SIZE_INDICATOR]
+
                     if len(batches_size_ind) == 2:
                         batches_size_ind_short = batches_size_ind[0]
                         batches_size_ind_long = batches_size_ind[1]
-                        
-                        if self.include_zero_values or (batches_size_ind_short > 0 or batches_size_ind_long > 0):
-                        
-                            splunk_event = splunk_event + "XBATCHSZ_SHORT=%d " % batches_size_ind_short
-                            splunk_event = splunk_event + "XBATCHSZ_LONG=%d " % batches_size_ind_long
-                
-                logging.debug("After XBATCHSZ.")            
+
+                        if self.include_zero_values or \
+                            (batches_size_ind_short > 0 or
+                             batches_size_ind_long > 0):
+
+                            splunk_event = splunk_event + \
+                                "XBATCHSZ_SHORT=%d " % batches_size_ind_short
+                            splunk_event = splunk_event + \
+                                "XBATCHSZ_LONG=%d " % batches_size_ind_long
+
+                logging.debug("After XBATCHSZ.")
                 if channel_info.has_key(pymqi.CMQCFC.MQIACH_CURRENT_MSGS):
-                    current_messages =  channel_info[pymqi.CMQCFC.MQIACH_CURRENT_MSGS]               
-                
-                    splunk_event = splunk_event + "CURMSGS=%d " % current_messages                 
-                
+                    current_messages = \
+                        channel_info[pymqi.CMQCFC.MQIACH_CURRENT_MSGS]
+
+                    splunk_event = splunk_event + \
+                        "CURMSGS=%d " % current_messages
+
                 if channel_info.has_key(pymqi.CMQCFC.MQIACH_MSGS):
-                    messages =  channel_info[pymqi.CMQCFC.MQIACH_MSGS]                               
-                    
+                    messages = channel_info[pymqi.CMQCFC.MQIACH_MSGS]
+
                     splunk_event = splunk_event + "MSGS=%d " % messages
-                
+
                 if channel_info.has_key(pymqi.CMQCFC.MQCACH_LAST_MSG_DATE):
-                    last_message_date =  channel_info[pymqi.CMQCFC.MQCACH_LAST_MSG_DATE]             
-                
-                    splunk_event = splunk_event + "LSTMSGDA=\"%s\" " % last_message_date.strip()                  
-                
+                    last_message_date = \
+                        channel_info[pymqi.CMQCFC.MQCACH_LAST_MSG_DATE]
+
+                    splunk_event = splunk_event + \
+                        "LSTMSGDA=\"%s\" " % last_message_date.strip()
+
                 if channel_info.has_key(pymqi.CMQCFC.MQCACH_LAST_MSG_TIME):
-                    last_message_time =  channel_info[pymqi.CMQCFC.MQCACH_LAST_MSG_TIME]             
-                
-                    splunk_event = splunk_event + "LSTMSGTI=\"%s\" " % last_message_time.strip()
-                
+                    last_message_time = \
+                        channel_info[pymqi.CMQCFC.MQCACH_LAST_MSG_TIME]
+
+                    splunk_event = splunk_event + \
+                        "LSTMSGTI=\"%s\" " % last_message_time.strip()
+
                 logging.debug("After LSTMSGTI.")
                 if channel_info.has_key(pymqi.CMQCFC.MQIACH_NETWORK_TIME_INDICATOR):
-                    network_time =  channel_info[pymqi.CMQCFC.MQIACH_NETWORK_TIME_INDICATOR]
-                    
-                    if len(network_time) ==  2:
+                    network_time = \
+                        channel_info[pymqi.CMQCFC.MQIACH_NETWORK_TIME_INDICATOR]
+
+                    if len(network_time) == 2:
                         network_time_short = network_time[0]
                         network_time_long = network_time[1]
-                        
-                        if self.include_zero_values or (network_time_short > 0 or network_time_long > 0):
-                            splunk_event = splunk_event + "NETTIME_SHORT=%d " % network_time_short
-                            splunk_event = splunk_event + "NETTIME_LONG=%d " % network_time_long
-                
+
+                        if self.include_zero_values or \
+                                (network_time_short > 0 or
+                                 network_time_long > 0):
+                            splunk_event = splunk_event + \
+                                "NETTIME_SHORT=%d " % network_time_short
+                            splunk_event = splunk_event + \
+                                "NETTIME_LONG=%d " % network_time_long
+
                 if channel_info.has_key(pymqi.CMQCFC.MQIACH_XMITQ_TIME_INDICATOR):
-                    xmitq_time =  channel_info[pymqi.CMQCFC.MQIACH_XMITQ_TIME_INDICATOR]
-                    
+                    xmitq_time = \
+                        channel_info[pymqi.CMQCFC.MQIACH_XMITQ_TIME_INDICATOR]
+
                     if len(xmitq_time) == 2:
                         xmitq_time_short = xmitq_time[0]
                         xmitq_time_long = xmitq_time[1]
-                        
-                        if self.include_zero_values or (xmitq_time_short > 0 or xmitq_time_long > 0):
-                            splunk_event = splunk_event + "XQTIME_SHORT=%d " % xmitq_time_short
-                            splunk_event = splunk_event + "XQTIME_LONG=%d " % xmitq_time_long
-                
+
+                        if self.include_zero_values or \
+                                (xmitq_time_short > 0 or xmitq_time_long > 0):
+                            splunk_event = splunk_event + \
+                                "XQTIME_SHORT=%d " % xmitq_time_short
+                            splunk_event = splunk_event + \
+                                "XQTIME_LONG=%d " % xmitq_time_long
+
                 if channel_info.has_key(pymqi.CMQCFC.MQIACH_EXIT_TIME_INDICATOR):
-                    exit_time =  channel_info[pymqi.CMQCFC.MQIACH_EXIT_TIME_INDICATOR]
-                    
+                    exit_time = \
+                        channel_info[pymqi.CMQCFC.MQIACH_EXIT_TIME_INDICATOR]
+
                     if len(exit_time) == 2:
                         exit_time_short = exit_time[0]
-                        exit_time_long = exit_time[1]  
-                        
-                        if self.include_zero_values or (exit_time_short > 0 or exit_time_long > 0):
-                            splunk_event = splunk_event + "EXITTIME_SHORT=%d " % exit_time_short
-                            splunk_event = splunk_event + "EXITTIME_LONG=%d " % exit_time_long
-                
+                        exit_time_long = exit_time[1]
+
+                        if self.include_zero_values or \
+                                (exit_time_short > 0 or exit_time_long > 0):
+                            splunk_event = splunk_event + \
+                                "EXITTIME_SHORT=%d " % exit_time_short
+                            splunk_event = splunk_event + \
+                                "EXITTIME_LONG=%d " % exit_time_long
+
                 logging.debug("After EXTTIME.")
                 if channel_info.has_key(pymqi.CMQCFC.MQIACH_HDR_COMPRESSION):
-                    comp_header =  channel_info[pymqi.CMQCFC.MQIACH_HDR_COMPRESSION]
-                    
+                    comp_header = \
+                        channel_info[pymqi.CMQCFC.MQIACH_HDR_COMPRESSION]
+
                     if len(comp_header) == 2:
-                        
-                        if self.include_zero_values or (comp_header[0] > 0 or comp_header[1] > 0):
+
+                        if self.include_zero_values or \
+                                (comp_header[0] > 0 or comp_header[1] > 0):
                             if self.textual_values:
-                                comp_header_1 = self.channel_compression_descs[comp_header[0]]
-                                comp_header_2 = self.channel_compression_descs[comp_header[1]]
-    
-                                splunk_event = splunk_event + "COMPHDR=\"%s,%s\" " % (comp_header_1, comp_header_2)
+                                comp_header_1 = \
+                                    self.channel_compression_descs[comp_header[0]]
+                                comp_header_2 = \
+                                    self.channel_compression_descs[comp_header[1]]
+
+                                splunk_event = splunk_event + \
+                                    "COMPHDR=\"%s,%s\" " % \
+                                    (comp_header_1, comp_header_2)
                             else:
-                                splunk_event = splunk_event + "COMPHDR=%d,%d " % (comp_header[0], comp_header[1])
+                                splunk_event = splunk_event + \
+                                    "COMPHDR=%d,%d " % \
+                                    (comp_header[0], comp_header[1])
+
                 if channel_info.has_key(pymqi.CMQCFC.MQIACH_MSG_COMPRESSION):
-                    comp_message =  channel_info[pymqi.CMQCFC.MQIACH_MSG_COMPRESSION]
-                    
+                    comp_message = \
+                        channel_info[pymqi.CMQCFC.MQIACH_MSG_COMPRESSION]
+
                     if len(comp_message) == 2:
-                        
-                        if self.include_zero_values or (comp_message[0] > 0 or comp_message[1] > 0):
-                            if self.textual_values: 
-                                comp_message_1 = self.channel_compression_descs[comp_message[0]]
-                                comp_message_2 = self.channel_compression_descs[comp_message[1]]
-                        
-                                splunk_event = splunk_event + "COMPMSG=\"%s,%s\" " % (comp_message_1, comp_message_2)
+
+                        if self.include_zero_values or \
+                                (comp_message[0] > 0 or comp_message[1] > 0):
+                            if self.textual_values:
+                                comp_message_1 = \
+                                    self.channel_compression_descs[comp_message[0]]
+                                comp_message_2 = \
+                                    self.channel_compression_descs[comp_message[1]]
+
+                                splunk_event = splunk_event + \
+                                    "COMPMSG=\"%s,%s\" " % \
+                                    (comp_message_1, comp_message_2)
                             else:
-                                splunk_event = splunk_event + "COMPMSG=%d,%d " % (comp_message[0], comp_message[1])
-                    
+                                splunk_event = splunk_event + \
+                                    "COMPMSG=%d,%d " % \
+                                    (comp_message[0], comp_message[1])
+
                 if channel_info.has_key(pymqi.CMQCFC.MQIACH_COMPRESSION_RATE):
-                    comp_rate =  channel_info[pymqi.CMQCFC.MQIACH_COMPRESSION_RATE]
-                    
+                    comp_rate = \
+                        channel_info[pymqi.CMQCFC.MQIACH_COMPRESSION_RATE]
+
                     if len(comp_rate) == 2:
                         comp_rate_short = comp_rate[0]
                         comp_rate_long = comp_rate[1]
-                        
-                        if self.include_zero_values or (comp_rate_short > 0 or comp_rate_long > 0):
-                            splunk_event = splunk_event + "COMPRATE_SHORT=%d " % comp_rate_short
-                            splunk_event = splunk_event + "COMPRATE_LONG=%d " % comp_rate_long
-                    
+
+                        if self.include_zero_values or \
+                                (comp_rate_short > 0 or comp_rate_long > 0):
+                            splunk_event = splunk_event + \
+                                "COMPRATE_SHORT=%d " % comp_rate_short
+                            splunk_event = splunk_event + \
+                                "COMPRATE_LONG=%d " % comp_rate_long
+
                 if channel_info.has_key(pymqi.CMQCFC.MQIACH_COMPRESSION_TIME):
-                    comp_time =  channel_info[pymqi.CMQCFC.MQIACH_COMPRESSION_TIME]     
-                    
+                    comp_time = \
+                        channel_info[pymqi.CMQCFC.MQIACH_COMPRESSION_TIME]
+
                     if len(comp_time) == 2:
                         comp_time_short = comp_time[0]
-                        comp_time_long = comp_time[1]                           
-                
-                        if self.include_zero_values or (comp_time_short > 0 or comp_time_long > 0):
-                            splunk_event = splunk_event + "COMPTIME_SHORT=%d " % comp_time_short
-                            splunk_event = splunk_event + "COMPTIME_LONG=%d " % comp_time_long
-                    
-                
+                        comp_time_long = comp_time[1]
+
+                        if self.include_zero_values or \
+                                (comp_time_short > 0 or comp_time_long > 0):
+                            splunk_event = splunk_event + \
+                                "COMPTIME_SHORT=%d " % comp_time_short
+                            splunk_event = splunk_event + \
+                                "COMPTIME_LONG=%d " % comp_time_long
+
                 if channel_info.has_key(pymqi.CMQCFC.MQIACH_IN_DOUBT):
-                    indoubt =  channel_info[pymqi.CMQCFC.MQIACH_IN_DOUBT]       
-                    
+                    indoubt = channel_info[pymqi.CMQCFC.MQIACH_IN_DOUBT]
+
                     if self.include_zero_values or indoubt > 0:
                         if self.textual_values:
                             indoubt_desc = 0
                             if indoubt > 0:
                                 indoubt_desc = "YES"
                             else:
-                                indoubt_desc = "NO"    
-                            
-                            splunk_event = splunk_event + "INDOUBT=\"%s\" " % indoubt_desc
+                                indoubt_desc = "NO"
+
+                            splunk_event = splunk_event + \
+                                "INDOUBT=\"%s\" " % indoubt_desc
                         else:
-                            splunk_event = splunk_event + "INDOUBT=%d " % indoubt                      
-                
-                logging.debug("After INDOUBT.")                
-                
+                            splunk_event = splunk_event + \
+                                "INDOUBT=%d " % indoubt
+
+                logging.debug("After INDOUBT.")
+
                 print_xml_single_instance_mode(splunk_host, splunk_event)

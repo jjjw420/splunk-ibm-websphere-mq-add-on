@@ -27,21 +27,20 @@
 							<view name="create" />
 							<key name="exampleText">The queue manager to connect to.</key>
 						</element>
-		
+
 						<element name="queue_manager_host" type="textfield" label="Queue Manager Host">
 							<view name="edit" />
 							<view name="create" />
 							<key name="exampleText">The queue manager host.</key>
 						</element>
-		
+
 						<element name="port" type="textfield" label="Listener Port">
 							<view name="edit" />
 							<view name="create" />
 							<key name="exampleText">The Queue Manager Listener port. Defaults to 1414.</key>
 						</element>
-		
-						<element name="server_connection_channel" type="textfield"
-							label="The server connection channel">
+
+						<element name="server_connection_channel" type="textfield" label="The server connection channel">
 							<view name="edit" />
 							<view name="create" />
 							<key name="exampleText">The server connection channel.</key>
@@ -57,10 +56,10 @@
 							<view name="edit" />
 							<view name="create" />
 							<key name="exampleText">The password to use when connecting to the Queue Manager. Defaults to spaces. </key>
-						</element>					
+						</element>
 					</elements>
 				</element>
-				
+
 				<element name="queues" type="fieldset">
 					<key name="legend">Queues</key>
 					<view name="edit" />
@@ -74,42 +73,68 @@
 						</element>
 					</elements>
 				</element>
-				
+
 				<element name="polling_details" type="fieldset">
 					<key name="legend">Polling and Triggering</key>
 					<view name="edit" />
 					<view name="create" />
 					<view name="list" />
 					<elements>
-		
+
 						<element name="mqinput_interval" type="textfield" label="Interval">
 							<view name="list" />
 							<view name="edit" />
 							<view name="create" />
 							<key name="exampleText">How often to run the MQ input script(in seconds).  Defaults to 60 seconds.</key>
 						</element>
-						
+
 						<element name="persistent_connection" type="checkbox" label="Persistent Connection">
 							<view name="edit" />
 							<view name="create" />
 							<key name="exampleText">Keep the queue manager connection open.</key>
 						</element>
-						
-						
-						<element name="start_process_per_queue" type="checkbox" label="Process per queue">
+
+
+						<element name="start_process_per_queue" type="checkbox" label="Create a dedicated process for each queue. ">
 							<view name="edit" />
 							<view name="create" />
-							<key name="exampleText">Start a process for each queue.</key>
+							<key name="exampleText">Start a dedicated process for each queue.</key>
 						</element>
-						
+
+						<element name="start_multiple_processes" type="checkbox" label="">
+							<view name="edit" />
+							<view name="create" />
+							<key name="exampleText">Start multiple processes.</key>
+							<onChange>
+								<key name="_action">showonly</key>
+								<key name="0">NONE</key>
+								<key name="1">ALL</key>
+								<group_set>
+									<group name="start_multiple_processes_group" />
+								</group_set>
+							</onChange>
+
+						</element>
+						<element name="start_multiple_processes_group" type="fieldset">
+							<view name="edit" />
+							<view name="create" />
+							<elements>
+								<element name="start_number_of_processes" type="textfield" label="Number of processes to start. Default 1.">
+									<view name="edit" />
+									<view name="create" />
+									<key name="exampleText">Start multiple processes.</key>
+								</element>
+							</elements>
+						</element>
+
 						<element name="use_mq_triggering" type="checkbox" label="Use MQ triggering">
 							<view name="edit" />
 							<view name="create" />
-							<key name="exampleText">Use MQ triggering instead of polling interval.</key>
+							<key name="exampleText">Use MQ triggering instead of polling interval. NOT IMPLEMENTED.</key>
 						</element>
 					</elements>
-				</element>	
-			<!-- 	
+				</element>
+				<!-- 	
 				<element name="event_options" type="fieldset">
 					<key name="legend">Event Options</key>
 					<view name="edit" />
@@ -123,15 +148,13 @@
 							<key name="exampleText">Use the MQMD.PutDate and MQMD.PutTime as the event time.</key>
 						</element>
 		
-						<element name="include_mqmd" type="checkbox"
-							label="Include the MQMD in the event">
+						<element name="include_mqmd" type="checkbox" label="Include the MQMD in the event">
 							<view name="edit" />
 							<view name="create" />
 							<key name="exampleText">Include the MQMD in the event.</key>
 						</element>
 						
-						<element name="pretty_mqmd" type="checkbox"
-							label="Beautify the MQMD in the event">
+						<element name="pretty_mqmd" type="checkbox" label="Beautify the MQMD in the event">
 							<view name="edit" />
 							<view name="create" />
 							<key name="exampleText">Beautify the MQMD in the event.</key>
@@ -152,8 +175,7 @@
 							<view name="create" />
 							<key name="exampleText">Python classname of custom response handler, defaults to DefaultQueueResponseHandler.</key>
 						</element>
-						<element name="response_handler_args" type="textfield"
-							label="Response Handler Arguments">
+						<element name="response_handler_args" type="textfield" label="Response Handler Arguments">
 
 							<view name="edit" />
 							<view name="create" />
@@ -163,132 +185,132 @@
 					</elements>
 				</element>
 
-		
+
 			</elements>
 		</element>
 
-		  <element name="sourcetypeFields" type="fieldset">
-                      <view name="list"/>
-                      <view name="edit"/>
-                      <view name="create"/>
-                      <elements>
-                        <element name="spl-ctrl_sourcetypeSelect" type="select" label="Set sourcetype">
-                          <onChange>
-                            <!-- <key name="auto">NONE</key> -->
-                            <key name="_action">showonly</key>
-                            <group_set>
-                              <group name="sourcetype"/>
-                              <group name="spl-ctrl_from_list"/>
-                            </group_set>
-                            <key name="sourcetype">sourcetype</key>
-                            <key name="spl-ctrl_from_list">spl-ctrl_from_list</key>
-                          </onChange>
-                          <options>
-                            <!-- <opt value="auto" label="Automatic"/> -->
-                            <opt value="spl-ctrl_from_list" label="From list"/>
-                            <opt value="sourcetype" label="Manual"/>
-                          </options>
-                          <view name="edit"/>
-                          <view name="create"/>
-                          <!-- <key name="exampleText">Set to automatic and Splunk will classify and assign sourcetype automatically. Unknown sourcetypes will be given a placeholder name.</key> -->
-                          <key name="processValueEdit">[[ e for e in ['sourcetype'] if form_defaults.get(e) ][0]]</key>
-                          <key name="processValueAdd">[[ e for e in ['sourcetype'] if form_defaults.get(e) ][0]]</key>
-                        </element>
-                        <element name="sourcetype" type="textfield" label="Source type">
-                          <view name="list"/>
-                          <view name="edit"/>
-                          <view name="create"/>
-                          <key name="exampleText">If this field is left blank, the default value of mqinput will be used for the source type.</key>
-                          <key name="processValueList">_('mqinput') if (value==None or value=='') else value</key> 
-                          <key name="submitValueAdd">form_data.get('spl-ctrl_from_list') if form_data.get('spl-ctrl_sourcetypeSelect')=='spl-ctrl_from_list' else value if ( form_data.get('spl-ctrl_sourcetypeSelect')=='sourcetype' and value!=None and value!='' ) else _('mqinput')</key>
-                          <key name="submitValueEdit">form_data.get('spl-ctrl_from_list') if form_data.get('spl-ctrl_sourcetypeSelect')=='spl-ctrl_from_list' else value if ( form_data.get('spl-ctrl_sourcetypeSelect')=='sourcetype' and value!=None and value!='' ) else _('mqinput')</key>
-                          
-                          <key name="labelList">Source type</key>
-                        </element>
-                        <element name="spl-ctrl_from_list" type="select" label="Select source type from list">
-    <view name="edit"/>
-                          <view name="create"/>
-                  <key name="exampleText">Splunk classifies all common data types automatically, but if you're looking for something specific, you can find more source types in the <![CDATA[<a href="../../../apps/remote">Splunkbase apps browser</a>]]> or online at <![CDATA[<a href="http://www.splunkbase.com/" target="_blank">www.splunkbase.com</a>]]>.</key>
-                          <key name="requiredIfVisible" />
-                          <key name="dynamicOptions" type="dict">
-                            <key name="keyName">title</key>
-                            <key name="keyValue">title</key>
-                            <key name="splunkSource">/saved/sourcetypes</key>
-                            <key name="splunkSourceParams" type="dict">
-                              <key name="count">-1</key>
-                              <key name="search">'pulldown_type=true'</key>
-                            </key>
-                            <key name="prefixOptions" type="list">
-                                <item type="list">
-                                    <item></item>
-                                    <item>Choose...</item>
-                                </item>
-                            </key>
-                          </key>
-                        </element>
-                      </elements>
-                      <key name="legend">Source type</key>
-                      <key name="helpText">Set sourcetype field for all events from this source.</key>
-                    </element>
-                            
-                            
-	<element name="spl-ctrl_EnableAdvanced" type="checkbox" label="More settings" class="spl-mgr-advanced-switch">
-        <view name="edit"/>
-        <view name="create"/>
-          <onChange>
-              <key name="_action">showonly</key>
-              <key name="0">NONE</key>
-              <key name="1">ALL</key>
-              <group_set>
-                <group name="advanced"/>
-              </group_set>
-          </onChange>
-    </element>
-	<element name="advanced" type="fieldset" class="spl-mgr-advanced-options">
-        <view name="edit"/>
-        <view name="create"/>
-        <elements>
-		    <element name="hostFields" type="fieldset">
-		      <key name="legend">Host</key>
-		      <view name="list"/>
-		      <view name="edit"/>
-		      <view name="create"/>
-		      <elements>
-		        <element name="host" type="textfield" label="Host field value">
-		          <view name="edit"/>
-		          <view name="create"/>
-		        </element>
-		      </elements>
-		    </element>  
-		    <element name="indexField" type="fieldset">
-		      <key name="legend">Index</key>
-		      <key name="helpText">Set the destination index for this source.</key>
-		      <view name="list"/>
-		      <view name="edit"/>
-		      <view name="create"/>
-		      <elements>
-		        <element name="index" type="select" label="Index">
-		          <view name="list"/>
-		          <view name="edit"/>
-		          <view name="create"/>
-		          <key name="dynamicOptions" type="dict">
-		            <key name="keyName">title</key>
-		            <key name="keyValue">title</key>
-		            <key name="splunkSource">/data/indexes</key>
-		            <key name="splunkSourceParams" type="dict">
-		              <key name="search">'isInternal=false disabled=false'</key>
-		              <key name="count">-1</key>
-		            </key>
-		          </key>
-		        </element>
-		      </elements>
-		    </element>
-		</elements>
-	</element>
-	<element name="eai:acl.app" label="App">
-      <view name="list"/>
-      <key name="processValueList">entity['eai:acl']['app'] or ""</key>
-    </element>
+		<element name="sourcetypeFields" type="fieldset">
+			<view name="list"/>
+			<view name="edit"/>
+			<view name="create"/>
+			<elements>
+				<element name="spl-ctrl_sourcetypeSelect" type="select" label="Set sourcetype">
+					<onChange>
+						<!-- <key name="auto">NONE</key> -->
+						<key name="_action">showonly</key>
+						<group_set>
+							<group name="sourcetype"/>
+							<group name="spl-ctrl_from_list"/>
+						</group_set>
+						<key name="sourcetype">sourcetype</key>
+						<key name="spl-ctrl_from_list">spl-ctrl_from_list</key>
+					</onChange>
+					<options>
+						<!-- <opt value="auto" label="Automatic"/> -->
+						<opt value="spl-ctrl_from_list" label="From list"/>
+						<opt value="sourcetype" label="Manual"/>
+					</options>
+					<view name="edit"/>
+					<view name="create"/>
+					<!-- <key name="exampleText">Set to automatic and Splunk will classify and assign sourcetype automatically. Unknown sourcetypes will be given a placeholder name.</key> -->
+					<key name="processValueEdit">[[ e for e in ['sourcetype'] if form_defaults.get(e) ][0]]</key>
+					<key name="processValueAdd">[[ e for e in ['sourcetype'] if form_defaults.get(e) ][0]]</key>
+				</element>
+				<element name="sourcetype" type="textfield" label="Source type">
+					<view name="list"/>
+					<view name="edit"/>
+					<view name="create"/>
+					<key name="exampleText">If this field is left blank, the default value of mqinput will be used for the source type.</key>
+					<key name="processValueList">_('mqinput') if (value==None or value=='') else value</key>
+					<key name="submitValueAdd">form_data.get('spl-ctrl_from_list') if form_data.get('spl-ctrl_sourcetypeSelect')=='spl-ctrl_from_list' else value if ( form_data.get('spl-ctrl_sourcetypeSelect')=='sourcetype' and value!=None and value!='' ) else _('mqinput')</key>
+					<key name="submitValueEdit">form_data.get('spl-ctrl_from_list') if form_data.get('spl-ctrl_sourcetypeSelect')=='spl-ctrl_from_list' else value if ( form_data.get('spl-ctrl_sourcetypeSelect')=='sourcetype' and value!=None and value!='' ) else _('mqinput')</key>
+
+					<key name="labelList">Source type</key>
+				</element>
+				<element name="spl-ctrl_from_list" type="select" label="Select source type from list">
+					<view name="edit"/>
+					<view name="create"/>
+					<key name="exampleText">Splunk classifies all common data types automatically, but if you're looking for something specific, you can find more source types in the 						<![CDATA[<a href="../../../apps/remote">Splunkbase apps browser</a>]]> or online at 						<![CDATA[<a href="http://www.splunkbase.com/" target="_blank">www.splunkbase.com</a>]]>.</key>
+					<key name="requiredIfVisible" />
+					<key name="dynamicOptions" type="dict">
+						<key name="keyName">title</key>
+						<key name="keyValue">title</key>
+						<key name="splunkSource">/saved/sourcetypes</key>
+						<key name="splunkSourceParams" type="dict">
+							<key name="count">-1</key>
+							<key name="search">'pulldown_type=true'</key>
+						</key>
+						<key name="prefixOptions" type="list">
+							<item type="list">
+								<item></item>
+								<item>Choose...</item>
+							</item>
+						</key>
+					</key>
+				</element>
+			</elements>
+			<key name="legend">Source type</key>
+			<key name="helpText">Set sourcetype field for all events from this source.</key>
+		</element>
+
+
+		<element name="spl-ctrl_EnableAdvanced" type="checkbox" label="More settings" class="spl-mgr-advanced-switch">
+			<view name="edit"/>
+			<view name="create"/>
+			<onChange>
+				<key name="_action">showonly</key>
+				<key name="0">NONE</key>
+				<key name="1">ALL</key>
+				<group_set>
+					<group name="advanced"/>
+				</group_set>
+			</onChange>
+		</element>
+		<element name="advanced" type="fieldset" class="spl-mgr-advanced-options">
+			<view name="edit"/>
+			<view name="create"/>
+			<elements>
+				<element name="hostFields" type="fieldset">
+					<key name="legend">Host</key>
+					<view name="list"/>
+					<view name="edit"/>
+					<view name="create"/>
+					<elements>
+						<element name="host" type="textfield" label="Host field value">
+							<view name="edit"/>
+							<view name="create"/>
+						</element>
+					</elements>
+				</element>
+				<element name="indexField" type="fieldset">
+					<key name="legend">Index</key>
+					<key name="helpText">Set the destination index for this source.</key>
+					<view name="list"/>
+					<view name="edit"/>
+					<view name="create"/>
+					<elements>
+						<element name="index" type="select" label="Index">
+							<view name="list"/>
+							<view name="edit"/>
+							<view name="create"/>
+							<key name="dynamicOptions" type="dict">
+								<key name="keyName">title</key>
+								<key name="keyValue">title</key>
+								<key name="splunkSource">/data/indexes</key>
+								<key name="splunkSourceParams" type="dict">
+									<key name="search">'isInternal=false disabled=false'</key>
+									<key name="count">-1</key>
+								</key>
+							</key>
+						</element>
+					</elements>
+				</element>
+			</elements>
+		</element>
+		<element name="eai:acl.app" label="App">
+			<view name="list"/>
+			<key name="processValueList">entity['eai:acl']['app'] or ""</key>
+		</element>
 
 	</elements>
 </endpoint>
