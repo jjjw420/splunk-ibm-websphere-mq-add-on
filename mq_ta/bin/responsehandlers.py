@@ -1390,7 +1390,7 @@ class ErrorQueueResponseHandler:
         if self.args.has_key("write_messages_folder"):
             self.write_messages_folder = self.args["write_messages_folder"]
 
-    def extract_values(self, msg_data, tag_name, first_only=False, 
+    def extract_values(self, msg_data, tag_name, first_only=False,
                        reverse=False):
         done = False
         start_pos = 0
@@ -1405,7 +1405,7 @@ class ErrorQueueResponseHandler:
             if start_pos >= 0:
                 end_pos = msg_data.find(end_tag, start_pos + 1)
                 if end_pos > 0:
-                    # value = value + 
+                    # value = value +
                     # msg_data[start_pos + len(start_tag):end_pos] + "|"
                     if reverse:
                         values = \
@@ -1425,7 +1425,7 @@ class ErrorQueueResponseHandler:
 
         return values
 
-    def __call__(self, splunk_host, queue_manager_name, queue, 
+    def __call__(self, splunk_host, queue_manager_name, queue,
                  msg_data, msg_desc, from_trigger, **kw):
 
         splunk_event = ""
@@ -1458,7 +1458,7 @@ class ErrorQueueResponseHandler:
 
         if self.use_mqmd_puttime:
             puttime = \
-                datetime.datetime.strptime(msg_desc["PutDate"] + 
+                datetime.datetime.strptime(msg_desc["PutDate"] +
                                            " " + msg_desc["PutTime"][0:6],
                                            "%Y%m%d %H%M%S")
 
@@ -1474,7 +1474,7 @@ class ErrorQueueResponseHandler:
                 cur_folder = os.path.join(
                                 os.path.join(
                                     os.path.join(
-                                        self.write_messages_folder, 
+                                        self.write_messages_folder,
                                         queue_manager_name), queue), date_s)
 
                 if not os.path.exists(cur_folder):
@@ -1520,12 +1520,12 @@ class ErrorQueueResponseHandler:
             new_msg_data = msg_data[:blob_start + 6] + msg_data[blob_end:]
 
         """
-        Looks like the below is no longer required.  
-        Splunk only seems to check xml at the most basic level and is 
-        not namespace aware.  As long as everything has an open 
+        Looks like the below is no longer required.
+        Splunk only seems to check xml at the most basic level and is
+        not namespace aware.  As long as everything has an open
         and a close tag all is ok.
 
-        PDG headers have invalid content...  
+        PDG headers have invalid content...
         Looks like it's due to copying parts of the header which does not
         include the original namespace declaration..
         <xmlns:xsi>http://www.w3.org/2001/XMLSchema-instance</xmlns:xsi>
@@ -1538,10 +1538,10 @@ class ErrorQueueResponseHandler:
             if xsi_start > 0:
                 xsi_end = new_msg_data.find("</xmlns:xsi>")
                 if xsi_end > 0:
-                    new_msg_data = new_msg_data[:xsi_start] + 
+                    new_msg_data = new_msg_data[:xsi_start] +
                     new_msg_data[xsi_end + 12:]
                 else:
-                    logging.error("Weird.  Found bum xmlns:xsi 
+                    logging.error("Weird.  Found bum xmlns:xsi
                     open tag but no close tag.  XML parsing may fail.")
             else:
                 done = True
@@ -1553,7 +1553,7 @@ class ErrorQueueResponseHandler:
             if xsi_start > 0:
                 xsi_end = new_msg_data.find("</xmlns>")
                 if xsi_end > 0:
-                    new_msg_data = new_msg_data[:xsi_start] + 
+                    new_msg_data = new_msg_data[:xsi_start] +
                     new_msg_data[xsi_end + 8:]
                 else:
                     logging.error("Weird.  Found bum xmlns:xsi open tag but no close tag.  XML parsing may fail.")
@@ -1568,7 +1568,7 @@ class ErrorQueueResponseHandler:
                 xsi_end = new_msg_data.find("</xmlns:")
                 end_pos = new_msg_data.find(">", xsi_end + 1)
                 if xsi_end > 0:
-                    new_msg_data = new_msg_data[:xsi_start] + 
+                    new_msg_data = new_msg_data[:xsi_start] +
                     new_msg_data[end_pos:]
                 else:
                     logging.error("Weird.  Found bum xmlns:xsi open tag but no close tag.  XML parsing may fail.")
@@ -1685,28 +1685,28 @@ class ErrorQueueResponseHandler:
             """
 
                 timestamp = ""
-                nl = self.extract_values(new_msg_data, "Timestamp", 
+                nl = self.extract_values(new_msg_data, "Timestamp",
                                          first_only=True)
                 #print "nl:", nl
                 if len(nl) > 0:
                     timestamp = ' error_timestamp="%s"' % nl[0]
 
                 broker = ""
-                nl = self.extract_values(new_msg_data,"BrokerName", 
+                nl = self.extract_values(new_msg_data,"BrokerName",
                                          first_only=True)
                 #print "nl:", nl
                 if len(nl) > 0:
                     broker = ' broker="%s"' % nl[0]
                 #logging.debug("extracted brokername")
                 eg = ""
-                nl = self.extract_values(new_msg_data,"ExecutionGroupName", 
+                nl = self.extract_values(new_msg_data,"ExecutionGroupName",
                                          first_only=True)
                 #print "nl:", nl
                 if len(nl) > 0:
                     eg = ' execution_group="%s"' % nl[0]
 
                 flow = ""
-                nl = self.extract_values(new_msg_data,"MessageFlowLabel", 
+                nl = self.extract_values(new_msg_data,"MessageFlowLabel",
                                          first_only=True)
                 #print "nl:", nl
                 if len(nl) > 0:
@@ -1822,13 +1822,13 @@ class ErrorQueueResponseHandler:
 class ErrorQueueResponseHandler:
     """
     Custom XML Error message format.
-    
+
     """
     def __init__(self,**args):
-        
+
         self.args = args
         self.mqmd_dicts = None
-        
+
         self.include_mqmd = False
         if self.args.has_key("include_mqmd"):
             if self.args["include_mqmd"].lower().strip() == "true":
@@ -1837,12 +1837,12 @@ class ErrorQueueResponseHandler:
                 self.include_mqmd = False
         else:
             self.include_mqmd = False
-        
-        self.pretty_mqmd = False        
+
+        self.pretty_mqmd = False
         if self.args.has_key("pretty_mqmd"):
             if self.args["pretty_mqmd"].strip().lower() == "true":
                 self.pretty_mqmd = True
- 
+
                 mqmd_dict = pymqi._MQConst2String(CMQC, "MQMD_")
                 mqro_dict = pymqi._MQConst2String(CMQC, "MQRO_")
                 mqmt_dict = pymqi._MQConst2String(CMQC, "MQMT_")
@@ -1856,15 +1856,15 @@ class ErrorQueueResponseHandler:
                 mqat_dict = pymqi._MQConst2String(CMQC, "MQAT_")
                 mqmf_dict = pymqi._MQConst2String(CMQC, "MQMF_")
                 mqol_dict = pymqi._MQConst2String(CMQC, "MQOL_")
-        
+
                 self.mqmd_dicts = {"mqmd": mqmd_dict, "mqro": mqro_dict, "mqmt": mqmt_dict, "mqei": mqei_dict, "mqfb": mqfb_dict, "mqenc": mqenc_dict, "mqccsi": mqccsi_dict,"mqfmt": mqfmt_dict, "mqpri": mqpri_dict, "mqper": mqper_dict, "mqat": mqat_dict, "mqmf": mqmf_dict, "mqol": mqol_dict}
- 
+
             else:
                 self.pretty_mqmd = False
         else:
             self.pretty_mqmd = False
-        
-        self.include_blob = False    
+
+        self.include_blob = False
         if self.args.has_key("include_blob"):
             if self.args["include_blob"].lower().strip() == "true":
                 self.include_blob = True
@@ -1872,16 +1872,16 @@ class ErrorQueueResponseHandler:
                 self.include_blob = False
         else:
             self.include_blob = False
-        
+
         self.extract_elements = True
         if self.args.has_key("extract_elements"):
             if self.args["extract_elements"].lower().strip() == "false":
-                self.extract_elements = False   
+                self.extract_elements = False
             else:
                 self.extract_elements = True
         else:
             self.extract_elements = True
-        
+
         self.extract_message_header = True
         if self.args.has_key("extract_message_header"):
             if self.args["extract_message_header"].lower().strip() == "false":
@@ -1890,7 +1890,7 @@ class ErrorQueueResponseHandler:
                 self.extract_message_header = True
         else:
             self.extract_message_header = True
-        
+
         self.filter_text_elements = True
         if self.args.has_key("filter_text_elements"):
             if self.args["filter_text_elements"].lower().strip() == "false":
@@ -1899,8 +1899,8 @@ class ErrorQueueResponseHandler:
                 self.filter_text_elements = True
         else:
             self.filter_text_elements = True
-        
-        self.use_mqmd_puttime = True    
+
+        self.use_mqmd_puttime = True
         if self.args.has_key("use_mqmd_puttime"):
             if self.args["use_mqmd_puttime"].lower().strip() == "false":
                 self.use_mqmd_puttime = False
@@ -1908,7 +1908,7 @@ class ErrorQueueResponseHandler:
                 self.use_mqmd_puttime = True
         else:
             self.use_mqmd_puttime = True
-        
+
         self.blob_limit = 65536
         if self.args.has_key("blob_limit"):
             try:
@@ -1916,15 +1916,15 @@ class ErrorQueueResponseHandler:
             except:
                 self.blob_limit = 65536
         else:
-            self.blob_limit = 65536 
-        
+            self.blob_limit = 65536
+
         self.make_mqmd_printable = False
         if self.args.has_key("make_mqmd_printable"):
             self.make_mqmd_printable = self.args["make_mqmd_printable"].lower().strip()
         else:
             self.make_mqmd_printable = False
 
-        self.write_messages = True 
+        self.write_messages = True
         if self.args.has_key("write_messages"):
             if self.args["write_messages"].lower().strip() == "false":
                 self.write_messages = False
@@ -1932,8 +1932,8 @@ class ErrorQueueResponseHandler:
                 self.write_messages = True
         else:
             self.write_messages = True
-            
-        self.gzip_messages = True 
+
+        self.gzip_messages = True
         if self.args.has_key("gzip_messages"):
             if self.args["gzip_messages"].lower().strip() == "false":
                 self.gzip_messages = False
@@ -1941,12 +1941,12 @@ class ErrorQueueResponseHandler:
                 self.gzip_messages = True
         else:
             self.gzip_messages = True
-        
+
         self.write_messages_folder = "/opt/splunk/esb/brokererrors/"
         if self.args.has_key("write_messages_folder"):
             self.write_messages_folder = self.args["write_messages_folder"]
-            
-   
+
+
     def extract_values(self, msg_data, tag_name, first_only=False, reverse=False):
         done = False
         start_pos = 0
@@ -1956,7 +1956,7 @@ class ErrorQueueResponseHandler:
         end_tag = "</%s>" % tag_name
         values = []
         while not done:
-            
+
             start_pos = msg_data.find(start_tag, start_pos)
             if start_pos >= 0:
                 end_pos = msg_data.find(end_tag, start_pos + 1)
@@ -1964,9 +1964,9 @@ class ErrorQueueResponseHandler:
                     #value = value + msg_data[start_pos + len(start_tag):end_pos] + "|"
                     if reverse:
                         values = [msg_data[start_pos + len(start_tag):end_pos]] + values
-                    else:    
+                    else:
                         values.append(msg_data[start_pos + len(start_tag):end_pos])
-                    
+
                     if first_only:
                         done = True
                     start_pos = end_pos
@@ -1975,21 +1975,21 @@ class ErrorQueueResponseHandler:
                     start_pos = start_pos + 1
             else:
                 done = True
-                
+
         return values
-    
-    def __call__(self, splunk_host, queue_manager_name, queue, msg_data, msg_desc, from_trigger, **kw):        
-        
+
+    def __call__(self, splunk_host, queue_manager_name, queue, msg_data, msg_desc, from_trigger, **kw):
+
         splunk_event = ""
         logging.debug("ErrorQueueResponseHandler in  __call__()")
         queue_manager_name_str = " queue_manager=%s" % queue_manager_name
         queue_str = " queue=%s" % queue
         host = " " + splunk_host
-        process = " mqinput(%i):" % os.getpid() 
+        process = " mqinput(%i):" % os.getpid()
         msg_id = " message_id=%s" % binascii.hexlify(msg_desc["MsgId"])
         message_file_name = ""
-   
-        
+
+
         mqmd_str = ""
         if self.include_mqmd and (msg_desc is not None):
             new_mqmd = make_mqmd(msg_desc, self.mqmd_dicts, self.pretty_mqmd, self.make_mqmd_printable)
@@ -1998,9 +1998,9 @@ class ErrorQueueResponseHandler:
                     mqmd_str = mqmd_str + " %s=%s" % (str(mqmd_key).strip(), str(mqmd_value))
                 else:
                     mqmd_str = mqmd_str + ' %s="%s"' % (str(mqmd_key).strip(), str(mqmd_value))
-        
+
         index_time_o = datetime.datetime.now()
-        index_time = "[" + index_time_o.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3] + " " + time.strftime("%z") + "]"   
+        index_time = "[" + index_time_o.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3] + " " + time.strftime("%z") + "]"
         if self.use_mqmd_puttime:
             puttime = datetime.datetime.strptime(msg_desc["PutDate"] + " " + msg_desc["PutTime"][0:6], "%Y%m%d %H%M%S")
 
@@ -2008,16 +2008,16 @@ class ErrorQueueResponseHandler:
 
             h_secs = msg_desc["PutTime"][6:]
             index_time = "[" + index_time_o.strftime("%Y-%m-%d %H:%M:%S") + "." + h_secs + "0 " +  time.strftime("%z") + "]"
-            
-        
+
+
         if self.write_messages:
             try:
                 date_s = time.strftime("%Y%m%d")
-                cur_folder = os.path.join(os.path.join(os.path.join(self.write_messages_folder, queue_manager_name), queue), date_s) 
-                
+                cur_folder = os.path.join(os.path.join(os.path.join(self.write_messages_folder, queue_manager_name), queue), date_s)
+
                 if not os.path.exists(cur_folder):
                     os.makedirs(cur_folder)
-                
+
                 file_name = "ErrorMessage_" +  binascii.hexlify(msg_desc["MsgId"]) + ".xml"
                 full_file_name = os.path.join(cur_folder, file_name)
                 if self.gzip_messages:
@@ -2031,105 +2031,105 @@ class ErrorQueueResponseHandler:
                 message_file_name = ' message_file_name="%s"'  % full_file_name
             except Exception, ex:
                 logging.error("Failed to write error message. " + str(ex))
-        
+
         new_msg_data = ""
-        
+
         blob_start = msg_data.find("<BLOB>")
         blob_end = msg_data.find("</BLOB>", blob_start)
-        
+
         blob_len = blob_end - blob_start + 6
-        
+
         if self.include_blob:
             mod_blob_limit = self.blob_limit % 2
-            
+
             if mod_blob_limit > 0:
                 self.blob_limit = self.blob_limit + 1
-                
+
                 if self.blob_limit > blob_len:
                     self.blob_limit = blob_len
-            
+
             new_msg_data = msg_data[:blob_start + 6 + self.blob_limit] + msg_data[blob_end:]
-                    
+
         else:
-            new_msg_data = msg_data[:blob_start + 6] + msg_data[blob_end:] 
-            
-        
-       
+            new_msg_data = msg_data[:blob_start + 6] + msg_data[blob_end:]
+
+
+
         #logging.debug("extract elements?")
         if self.extract_elements:
             #logging.debug("Extracting elements.")
-            #extract main fields via substring instead of xpath  
-            
+            #extract main fields via substring instead of xpath
+
             try:
-                
+
                 timestamp = ""
                 nl = self.extract_values(new_msg_data, "Timestamp", first_only=True)
                 #print "nl:", nl
                 if len(nl) > 0:
                     timestamp = ' error_timestamp="%s"' % nl[0]
-                
+
                 broker = ""
                 nl = self.extract_values(new_msg_data,"BrokerName", first_only=True)
                 #print "nl:", nl
                 if len(nl) > 0:
-                    broker = ' broker="%s"' % nl[0]   
+                    broker = ' broker="%s"' % nl[0]
                 #logging.debug("extracted brokername")
                 eg = ""
                 nl = self.extract_values(new_msg_data,"ExecutionGroupName",first_only=True)
                 #print "nl:", nl
                 if len(nl) > 0:
-                    eg = ' execution_group="%s"' % nl[0]   
-                
+                    eg = ' execution_group="%s"' % nl[0]
+
                 flow = ""
                 nl = self.extract_values(new_msg_data,"MessageFlowLabel",first_only=True)
                 #print "nl:", nl
                 if len(nl) > 0:
-                    flow = ' flow="%s"' % nl[0]   
-                    
-                
+                    flow = ' flow="%s"' % nl[0]
+
+
                 source_q = ""
                 nl = self.extract_values(new_msg_data,"SourceQueue",first_only=True)
                 #print "nl:", nl
                 if len(nl) > 0:
-                    source_q = ' source_queue="%s"' % nl[0]   
-                
+                    source_q = ' source_queue="%s"' % nl[0]
+
                 r2_q = ""
                 nl = self.extract_values(new_msg_data,"ReplyToQ",first_only=True)
                 #print "nl:", nl
                 if len(nl) > 0:
-                    r2_q = ' replyto_queue="%s"' % nl[0]     
+                    r2_q = ' replyto_queue="%s"' % nl[0]
                 #logging.debug("extracted r2q")
                 r2_proto = ""
                 nl = self.extract_values(new_msg_data,"ReplyProtocol",first_only=True)
                 #print "nl:", nl
                 if len(nl) > 0:
-                    r2_proto = ' reply_protocol="%s"' % nl[0] 
-                
+                    r2_proto = ' reply_protocol="%s"' % nl[0]
+
                 msg_fmt = ""
                 nl = self.extract_values(new_msg_data,"MessageFormat",first_only=True)
                 #print "nl:", nl
                 if len(nl) > 0:
-                    msg_fmt = ' message_format="%s"' % nl[0]    
-                
+                    msg_fmt = ' message_format="%s"' % nl[0]
+
                 msg_ccsid = ""
                 nl = self.extract_values(new_msg_data,"CodedCharSetId",first_only=True)
                 #print "nl:", nl
                 if len(nl) > 0:
-                    msg_ccsid = ' message_ccsid="%s"' % nl[0]     
-                
+                    msg_ccsid = ' message_ccsid="%s"' % nl[0]
+
                 msg_hdr = ""
                 if self.extract_message_header:
                     nl = self.extract_values(new_msg_data,"MessageHeader",first_only=True)
                     #print "nl:", nl
                     if len(nl) > 0:
-                        msg_hdr = ' message_header="<MessageHeader>%s</MessageHeader>"' % nl[0].replace('"', "'")   
-                    
-                
-                #logging.debug("extracting messagetext")      
+                        msg_hdr = ' message_header="<MessageHeader>%s</MessageHeader>"' % nl[0].replace('"', "'")
+
+
+                #logging.debug("extracting messagetext")
                 message_texts = ""
                 nl = self.extract_values(new_msg_data,"MessageText",first_only=False)
                 #print "nl:", nl
-                
+
                 temp_msg_txt = ""
                 if len(nl) > 0:
                     #message_texts = " message_text="
@@ -2138,15 +2138,15 @@ class ErrorQueueResponseHandler:
                         #temp_msg_txt = temp_msg_txt + ' message_text="%s"' % n.text.replace('"', "'")
                     if temp_msg_txt[-1:] == "|":
                         temp_msg_txt = temp_msg_txt[:-1]
-                    
+
                     if temp_msg_txt[0:1] == "|":
                         temp_msg_txt = temp_msg_txt[1:]
-                        
+
                     message_texts = ' message_text="%s"' % temp_msg_txt
                     #message_texts = temp_msg_txt
-                    
-                    
-                
+
+
+
                 txt_elements = ""
                 nl = self.extract_values(new_msg_data,"Text", first_only=False)
                 #print "nl:", nl
@@ -2155,35 +2155,34 @@ class ErrorQueueResponseHandler:
                     tmp_el = ""
                     for n in nl:
                         if self.filter_text_elements:
-                            
+
                             try:
                                 dummy_float = float(n)
                             except:
                                 if n.find("rethrowing") <= 0:
                                     tmp_el = n.replace('"', "'").replace("||", "+").replace("|", "+") + "|" + tmp_el
-                                    #tmp_el = ' exception_text="%s"' % n.text.replace('"', "'") + tmp_el  
-                    
+                                    #tmp_el = ' exception_text="%s"' % n.text.replace('"', "'") + tmp_el
+
                     if tmp_el[-1:] == "|":
                         tmp_el = tmp_el[:-1]
-                        
+
                     if tmp_el[0:1] == "|":
                         tmp_el = tmp_el[1:]
-                               
+
                     txt_elements = ' exception_text="%s"' % tmp_el
-                    #txt_elements = tmp_el         
+                    #txt_elements = tmp_el
                 payload = timestamp + broker + eg + flow + source_q + r2_q + r2_proto + msg_fmt + msg_ccsid + msg_hdr + message_texts + txt_elements
-                    
+
             except Exception, ex:
-                logging.error("XML parsing error.  Including whole message." + str(ex))        
+                logging.error("XML parsing error.  Including whole message." + str(ex))
                 payload = ' xmlparsingfail="true" payload="%s"' %  new_msg_data
         else:
-                       
+
             payload = ' extractfields="false" payload="%s"' %  new_msg_data
-        
+
         #handle trigger
         if from_trigger:
             pass
-        else:  
+        else:
             splunk_event = splunk_event + index_time + host + process + queue_manager_name_str +  queue_str + msg_id + message_file_name +  mqmd_str + payload
             print_xml_single_instance_mode(splunk_host, splunk_event)
-       
