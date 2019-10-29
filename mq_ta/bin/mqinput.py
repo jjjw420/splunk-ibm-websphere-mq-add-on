@@ -12,6 +12,10 @@ provided "AS-IS" without warranty of any kind, either express or
 implied.
 
 '''
+from __future__ import print_function
+from builtins import map
+from builtins import str
+from builtins import range
 
 import os
 import sys
@@ -20,9 +24,11 @@ import xml.dom.minidom
 import xml.sax.saxutils
 import time
 import threading
+import uuid
+
 import pymqi
 from pymqi import CMQC as CMQC
-import uuid
+
 
 
 SPLUNK_HOME = os.environ.get("SPLUNK_HOME")
@@ -190,7 +196,7 @@ def do_validate():
         if validationFailed:
             sys.exit(2)
 
-    except Exception, ex:
+    except Exception as ex:
         e = sys.exc_info()[1]
         logging.error("Exception getting XML configuration: %s" % str(e))
         logging.error("Exception getting XML configuration. Exception %s" %
@@ -216,7 +222,7 @@ def do_run():
     queue_names = config.get("queue_names")
 
     if queue_names is not None:
-        queue_name_list = map(str, queue_names.split(","))
+        queue_name_list = list(map(str, queue_names.split(",")))
         # trim any whitespace using a list comprehension
         queue_name_list = [x.strip(' ') for x in queue_name_list]
 
@@ -258,11 +264,12 @@ def do_run():
                 h.setFormatter(logging.Formatter('%(levelname)s %(message)s \
                     mqinput_stanza:{0}'.format(name)))
 
-    except Exception, ex:  # catch *all* exceptions
+    except Exception as ex:  # catch *all* exceptions
         e = sys.exc_info()[1]
-        logging.error("Could not update logging templates: %s host:'" % str(e))
-        logging.error("Could not update logging templates. Exception: %s" %
+        logging.error("Could not update logging templates. System Exception: %s" % 
                       str(e))
+        logging.error("Could not update logging templates. Caught Exception: %s" %
+                      str(ex))
 
     if use_mq_triggering:
         pass
@@ -354,7 +361,7 @@ class QueuePollerThread(threading.Thread):
         self.setName(group_id)
         self.splunk_host = splunk_host
 
-        self.queue_name_list = map(str, self.queue_names.split(","))
+        self.queue_name_list = list(map(str, self.queue_names.split(",")))
         # trim any whitespace using a list comprehension
         self.queue_name_list = [x.strip(' ') for x in self.queue_name_list]
         # logging.debug("after queue name lust")
@@ -448,7 +455,7 @@ class QueuePollerThread(threading.Thread):
                                                    CMQC.MQOO_INPUT_SHARED)))
                         # logging.debug("queue loop.  queue name:" +
                         #               str(queue_name))
-                    except Exception, ex:
+                    except Exception as ex:
                         logging.error("Unable to open queue:" +
                                       str(queue_name) +
                                       " Exception: " +
@@ -501,7 +508,7 @@ class QueuePollerThread(threading.Thread):
                                           queue_name, msg_data,
                                           msg_desc, False,  **self.kw)
                             logging.debug("Handled output")
-                        except pymqi.MQMIError, e:
+                        except pymqi.MQMIError as e:
                             if e.reason == 2033:
                                 logging.debug("Done! 2033. No more messages!")
                                 done = True
@@ -514,7 +521,7 @@ class QueuePollerThread(threading.Thread):
 
                 if not self.persistent_connection:
                     self._qm.disconnect()
-            except pymqi.MQMIError, e:
+            except pymqi.MQMIError as e:
                 if e.reason == 2033:
                     pass
                 else:
@@ -546,7 +553,7 @@ class MQTriggerThread(threading.Thread):
         self.mq_user_name = mq_user_name
         self.mq_password = mq_password
         self.queue_names = queue_names
-        self.queue_name_list = map(str, queue_names.split(","))
+        self.queue_name_list = list(map(str, queue_names.split(",")))
         # trim any whitespace using a list comprehension
         self.queue_name_list = [x.strip(' ') for x in self.queue_name_list]
 
@@ -560,7 +567,7 @@ class MQTriggerThread(threading.Thread):
 
 # prints validation error data to be consumed by Splunk
 def print_validation_error(s):
-    print "<error><message>%s</message></error>" % xml.sax.saxutils.escape(s)
+    print("<error><message>%s</message></error>" % xml.sax.saxutils.escape(s))
 
 
 def handle_output(splunk_host, queue_manager_name, queue, msg_desc,
@@ -577,14 +584,14 @@ def handle_output(splunk_host, queue_manager_name, queue, msg_desc,
 
 
 def usage():
-    print "usage: %s [--scheme|--validate-arguments]"
+    print("usage: mqinput.py [--scheme|--validate-arguments]")
     logging.error("Incorrect Program Usage")
     sys.exit(2)
 
 
 def do_scheme():
     logging.debug("MQINPUT: DO scheme..")
-    print SCHEME
+    print(SCHEME)
 
 
 # read XML configuration passed from splunkd,
@@ -630,7 +637,7 @@ def get_input_config():
         if not config:
             raise Exception("Invalid configuration received from Splunk.")
 
-    except Exception, ex:  # catch *all* exceptions
+    except Exception as ex:  # catch *all* exceptions
         e = sys.exc_info()[1]
         logging.error("Exception occured. Exception: %s" % str(ex))
         raise Exception("Error getting Splunk configuration via STDIN: %s" %
