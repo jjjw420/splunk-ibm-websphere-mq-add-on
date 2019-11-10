@@ -52,6 +52,8 @@ Created from the Splunk modular input examples.
    * `payload_limit=1024` - How many bytes of the payload to include in the splunk event.  Default: 1024 (1kb)  
    * `encode_payload=false/base64/hexbinary` - Encode the payload.   Default: false 
    * `make_payload_printable=false/true` - Escape non text values in the payload.  Default: true
+   * `log_payload_as_event` - If false do not log the payload as a name/value pair.  Default: false
+   * `payload_quote_char` - Use a specific character to quote the "payload" kv value. Default: " (double quote)
 
 ### DefaultChannelStatusResponseHandler
 * Default handler for Channel Status Statistics.

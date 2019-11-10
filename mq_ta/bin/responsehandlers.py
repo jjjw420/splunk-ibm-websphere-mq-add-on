@@ -43,7 +43,7 @@ class DefaultQueueResponseHandler(object):
     The DefaultResponseHandler uses the "syslog" input type and
     supports the following options:
 
-    DefaultQueuResponseHandler arguments:
+    DefaultQueueResponseHandler arguments:
         include_payload=false/true - Include the message payload in the event.
         Default: true
 
@@ -67,6 +67,11 @@ class DefaultQueueResponseHandler(object):
 
         make_payload_printable=false/true - Escape non text values in
         the payload.  Default: true
+
+        payload_quote_char='"' - Use a specific chararacter for the payload quote character.  
+        Default is '"'.
+
+        log_payload_as_event=true/false - If false do not wrap the payload in a name value pair.  eg. payload=""  Default is true.
 
     """
 
@@ -159,6 +164,20 @@ class DefaultQueueResponseHandler(object):
         else:
             self.make_payload_printable = True
 
+        if "log_payload_as_event" in self.args:
+            if self.args["log_payload_as_event"].lower().strip() == "true":
+                self.log_payload_as_event = True
+            else:
+                self.log_payload_as_event = False
+        else:
+            self.log_payload_as_event = False
+
+        if "payload_quote_char" in self.args:
+            self.payload_quote_char = self.args["payload_quote_char"].strip()
+        else:
+            self.payload_quote_char = '"'
+
+
     def __call__(self, splunk_host, queue_manager_name, queue, msg_data,
                  msg_desc, from_trigger, **kw):
 
@@ -200,20 +219,27 @@ class DefaultQueueResponseHandler(object):
 
         payload = ""
         logging.debug("B4 include payload.")
+        if self.log_payload_as_event:
+            payload_el_str = ' %s'
+        else:
+            payload_el_str = ' payload=' + self.payload_quote_char + "%s" + self.payload_quote_char
+
+        logging.debug("payload el str: " + payload_el_str)
+
         if self.include_payload:
             if self.encode_payload == "base64":
-                payload = ' payload="%s"' % \
+                payload = payload_el_str % \
                     str(base64.encodestring(msg_data[:self.payload_limit]))
             else:
                 if self.encode_payload == "hexbinary":
-                    payload = ' payload="%s"' % \
+                    payload = payload_el_str % \
                         str(binascii.hexlify(msg_data[:self.payload_limit]))
                 else:
                     if self.make_payload_printable:
-                        payload = ' payload="%s"' % \
+                        payload = payload_el_str % \
                             make_printable(msg_data[:self.payload_limit])
                     else:
-                        payload = ' payload="%s"' % \
+                        payload = payload_el_str % \
                             msg_data[:self.payload_limit]
 
         queue_manager_name_str = " queue_manager=%s" % queue_manager_name
@@ -221,13 +247,14 @@ class DefaultQueueResponseHandler(object):
         host = " " + splunk_host
         process = " mqinput(%i):" % os.getpid()
 
+        splunk_event = splunk_event + index_time + host + process + \
+                        queue_manager_name_str + queue + mqmd_str + \
+                        payload
+
         # handle trigger
         if from_trigger:
             pass
         else:
-            splunk_event = splunk_event + index_time + host + process + \
-                           queue_manager_name_str + queue + mqmd_str + \
-                           payload
             print_xml_single_instance_mode(splunk_host, splunk_event)
 
 
