@@ -24,7 +24,7 @@ Created from the Splunk modular input examples.
 
 * Splunk 6.0+
 * PyMQI 1.5+
-* ctypes library for Python
+* ctypes library for Python.  **NOTE: Splunk V8 has the ctypes libary installed by default for both Python2 and Python3.**  
 * IBM Websphere MQ Client Libraries V7+
 * Only currently supported on Linux (but Windows (and any other platform) should be possible if the platform versions of the PyMQI and ctypes libraries are installed) 
 
@@ -34,7 +34,7 @@ Created from the Splunk modular input examples.
 * Get and build the PyMQI library.  You can download from here: https://github.com/dsuch/pymqi 
 * Untar the MQ modular input release to your $SPLUNK_HOME/etc/apps directory.
 * Copy the built PyMQI library to the $SPLUNK_HOME/etc/apps/mq_ta/bin folder.
-* Copy python c_types library directory to the $SPLUNK_HOME/etc/apps/mq_ta/bin directory.  Splunk's Python interpreter is built with UCS-2.  Make sure you use a compatible _ctypes.so library.
+* Copy python c_types library directory to the $SPLUNK_HOME/etc/apps/mq_ta/bin directory.  Splunk's Python interpreter is built with UCS-2.  Make sure you use a compatible _ctypes.so library.  **NOTE:  This step is not required if running Splunk V8+as the ctypes library is included for both Python2 and Python3.**  
 * Ensure that the pymqi and ctypes libraries can be imported when using the Splunk Python interpreter. 
 * Restart Splunk
 
@@ -78,7 +78,8 @@ Any modular input log errors will get written to $SPLUNK_HOME/var/log/splunk/spl
 
 * You are using Splunk 6+
 * Look for any errors in $SPLUNK_HOME/var/log/splunk/splunkd.log
-* Enable debug logging by changing the "ExecProcessor" property under "Server logging" to DEBUG.
+* Enable debug logging by changing the "ExecProcessor" property under "Server logging" to DEBUG.  This will output some debug at various places in the code.  
+Search for the following in Splunk: `index=_internal component=ExecProcessor mq_ta`
 * Ensure that the PyMQI and ctypes libraries can be imported when using the Splunk Python interpreter. 
 * Ensure that the IBM Websphere MQ libraries are available to the user which runs Splunk. 
 
