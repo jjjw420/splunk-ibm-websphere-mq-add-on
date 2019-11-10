@@ -3,7 +3,8 @@
 IBM Websphere MQ Modular Input for Splunk
 Hannes Wagener - 2015
 
-Used the Splunk provided modular input as example.
+This is a custom search command to fetch a payload 
+previously written to disk by a response handler.
 
 DISCLAIMER
 You are free to use this code in any way you like, subject to the
@@ -13,8 +14,8 @@ provided "AS-IS" without warranty of any kind, either express or
 implied.
 
 '''
+from __future__ import print_function
 
-from builtins import str
 import csv
 import sys
 import splunk.Intersplunk
@@ -25,12 +26,14 @@ import binascii
 import zlib
 import base64
 
+
 MONGO_SUPPORTED = False
 try:
     import pymongo
     import bson
-except:
     MONGO_SUPPORTED = True
+except:
+    pass
     
 
 MONGODB_HOST = "127.0.0.1"
@@ -40,7 +43,6 @@ MONGODB_USER = "splunk"
 MONGODB_PASSWORD = "splunk"
 MONGODB_AUTH_DB = "admin"
 MONGODB_USE_AUTH = False
-
 
 mongodb_client = None
 mongodb_db = None

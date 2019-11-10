@@ -13,9 +13,6 @@ implied.
 
 '''
 from __future__ import print_function
-from builtins import map
-from builtins import str
-from builtins import range
 
 import os
 import sys
@@ -28,8 +25,6 @@ import uuid
 
 import pymqi
 from pymqi import CMQC as CMQC
-
-
 
 SPLUNK_HOME = os.environ.get("SPLUNK_HOME")
 
@@ -349,14 +344,14 @@ class QueuePollerThread(threading.Thread):
 
         if self.mq_user_name is not None:
             if self.mq_user_name.strip() == "":
-                self.mq_user_name = None
-                self.mq_password = None
+                self.mq_user_name = ""
+                self.mq_password = ""
             else:
                 self.mq_user_name = self.mq_user_name.strip()
                 self.mq_password = self.mq_password.strip()
         else:
-            self.mq_user_name = None
-            self.mq_password = None
+            self.mq_user_name = ""
+            self.mq_password = ""
 
         self.setName(group_id)
         self.splunk_host = splunk_host
@@ -378,9 +373,9 @@ class QueuePollerThread(threading.Thread):
                 # logging.debug("before connect %s %s %s" %
                 # (self.queue_manager_name, self.server_conn_chl,
                 #  self.socket))
-                file_pid = str(open("/tmp/%s_current.pid" %
+                file_pid = open("/tmp/%s_current.pid" %
                                     (self.config_name.replace("://", "-") +
-                                     "_" + str(self.thread_id)), "r").read())
+                                     "_" + str(self.thread_id)), "r").read().decode()
                 logging.debug("%%%%%% this pid:" + str(self.getName()) +
                               " File pid:" + str(file_pid))
 
@@ -395,53 +390,74 @@ class QueuePollerThread(threading.Thread):
                     # str(self.getName()) + " File pid:" + str(file_pid))
 
                 cd = pymqi.cd()
+                #set the max message length to maximum
                 cd["MaxMsgLength"] = 104857600
 
                 if self._qm is None:
                     self._qm = pymqi.QueueManager(None)
                     logging.debug("Connecting to " +
-                                  str(self.queue_manager_name) +
-                                  str(self.server_conn_chl))
+                                str(self.queue_manager_name) + 
+                                " using channel " +
+                                str(self.server_conn_chl) + 
+                                " and address " + 
+                                self.socket + ".")
 
-                    self._qm.connectTCPClient(self.queue_manager_name, cd,
+                    self._qm.connect_tcp_client(self.queue_manager_name, cd,
                                               self.server_conn_chl,
-                                              self.socket, self.mq_user_name,
+                                              self.socket, 
+                                              self.mq_user_name,
                                               self.mq_password)
 
                     logging.debug("Successfully Connected to " +
-                                  str(self.queue_manager_name) +
-                                  str(self.server_conn_chl))
+                                self.queue_manager_name + 
+                                " using channel " +
+                                self.server_conn_chl + 
+                                " and address " + 
+                                self.socket + ".")
                 else:
                     if not self.persistent_connection:
                         self._qm = pymqi.QueueManager(None)
                         logging.debug("Connecting to " +
-                                      str(self.queue_manager_name) +
-                                      str(self.server_conn_chl))
+                                str(self.queue_manager_name) + 
+                                " using channel " +
+                                str(self.server_conn_chl) + 
+                                " and address " + 
+                                self.socket + ".")
 
-                        self._qm.connectTCPClient(self.queue_manager_name, cd,
+                        self._qm.connect_tcp_client(self.queue_manager_name, cd,
                                                   self.server_conn_chl,
                                                   self.socket,
                                                   self.mq_user_name,
                                                   self.mq_password)
+                                                  
                         logging.debug("Successfully Connected to " +
-                                      str(self.queue_manager_name) +
-                                      str(self.server_conn_chl))
+                                  self.queue_manager_name + 
+                                  " using channel " +
+                                  self.server_conn_chl + 
+                                  " and address " + 
+                                  self.socket + ".")
                     else:
                         if not self._qm._is_connected():
                             self._qm = pymqi.QueueManager(None)
                             logging.debug("Connecting to " +
-                                          str(self.queue_manager_name) +
-                                          str(self.server_conn_chl))
+                                str(self.queue_manager_name) + 
+                                " using channel " +
+                                str(self.server_conn_chl) + 
+                                " and address " + 
+                                self.socket + ".")
 
-                            self._qm.connectTCPClient(self.queue_manager_name,
+                            self._qm.connect_tcp_client(self.queue_manager_name,
                                                       cd,
                                                       self.server_conn_chl,
                                                       self.socket,
                                                       self.mq_user_name,
                                                       self.mq_password)
                             logging.debug("Successfully Connected to " +
-                                          str(self.queue_manager_name) +
-                                          str(self.server_conn_chl))
+                                self.queue_manager_name + 
+                                " using channel " +
+                                self.server_conn_chl + 
+                                " and address " + 
+                                self.socket + ".")
 
                 queues = []
                 logging.debug("Queue name list: %s" %

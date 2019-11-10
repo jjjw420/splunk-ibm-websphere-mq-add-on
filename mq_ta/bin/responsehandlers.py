@@ -16,21 +16,20 @@ implied.
 '''
 from __future__ import print_function
 
-from builtins import str
-from builtins import object
 import json
 import datetime
 import time
 import binascii
 import base64
-import pymqi
-from pymqi import CMQC as CMQC
 import string
 import os
 import lxml
 import logging
 import gzip
 import re
+
+import pymqi
+from pymqi import CMQC as CMQC
 
 logging.basicConfig(level=logging.DEBUG, format='%(levelname)s %(message)s')
 

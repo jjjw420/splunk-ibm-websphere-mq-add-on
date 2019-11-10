@@ -14,8 +14,6 @@ implied.
 '''
 
 from __future__ import print_function
-from builtins import map
-from builtins import str
 
 import os
 import sys
@@ -28,7 +26,6 @@ import uuid
 
 import pymqi
 from pymqi import CMQC as CMQC
-
 
 SPLUNK_HOME = os.environ.get("SPLUNK_HOME")
 
