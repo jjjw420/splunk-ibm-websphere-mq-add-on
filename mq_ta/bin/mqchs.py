@@ -13,6 +13,8 @@ implied.
 
 '''
 
+from __future__ import print_function
+
 import os
 import sys
 import logging
@@ -20,9 +22,10 @@ import xml.dom.minidom
 import xml.sax.saxutils
 import time
 import threading
+import uuid
+
 import pymqi
 from pymqi import CMQC as CMQC
-import uuid
 
 SPLUNK_HOME = os.environ.get("SPLUNK_HOME")
 
@@ -160,12 +163,12 @@ def do_validate():
         if validationFailed:
             sys.exit(2)
 
-    except Exception, ex:  # catch *all* exceptions
+    except Exception as ex:  # catch *all* exceptions
         e = sys.exc_info()[1]
         logging.error("Exception getting XML configuration: %s" % str(e))
         logging.error("Exception getting XML configuration: %s" % str(ex))
         raise ex
-        sys.exit(1)
+        #sys.exit(1)
 
 
 def do_run():
@@ -186,7 +189,7 @@ def do_run():
     channel_names = config.get("channel_names")
 
     if channel_names is not None:
-        channel_name_list = map(str, channel_names.split(","))
+        channel_name_list = list(map(str, channel_names.split(",")))
         # trim any whitespace using a list comprehension
         channel_name_list = [x.strip(' ') for x in channel_name_list]
 
@@ -286,7 +289,7 @@ class ChannelStatusPollerThread(threading.Thread):
         self.setName(group_id)
         self.splunk_host = splunk_host
 
-        self.channel_name_list = map(str, self.channel_names.split(","))
+        self.channel_name_list = list(map(str, self.channel_names.split(",")))
         self.channel_name_list = [x.strip(' ') for x in self.channel_name_list]
         self.socket = "%s(%i)" % (str(self.queue_manager_host).strip(),
                                   self.port)
@@ -395,7 +398,7 @@ class ChannelStatusPollerThread(threading.Thread):
                         pcf_response = \
                             pcf.MQCMD_INQUIRE_CHANNEL_STATUS(get_chs_args)
 
-                    except pymqi.MQMIError, e:
+                    except pymqi.MQMIError as e:
                         if e.comp == pymqi.CMQC.MQCC_FAILED and \
                            e.reason == pymqi.CMQC.MQRC_UNKNOWN_OBJECT_NAME:
                             logging.info("Channel '%s' does not exist." %
@@ -415,7 +418,7 @@ class ChannelStatusPollerThread(threading.Thread):
 
                 if not self.persistent_connection:
                     self._qm.disconnect()
-            except pymqi.MQMIError, e:
+            except pymqi.MQMIError as e:
                 logging.error("MQ Exception occurred: %s " % (str(e)))
                 if self._qm is not None:
                     if not self.persistent_connection and \
@@ -433,7 +436,7 @@ class ChannelStatusPollerThread(threading.Thread):
 
 # prints validation error data to be consumed by Splunk
 def print_validation_error(s):
-    print "<error><message>%s</message></error>" % xml.sax.saxutils.escape(s)
+    print("<error><message>%s</message></error>" % xml.sax.saxutils.escape(s))
 
 
 def handle_output(splunk_host, queue_manager_name, channel_name,
@@ -450,14 +453,14 @@ def handle_output(splunk_host, queue_manager_name, channel_name,
 
 
 def usage():
-    print "usage: %s [--scheme|--validate-arguments]"
+    print("usage: mqchs.py [--scheme|--validate-arguments]")
     logging.error("Incorrect Program Usage")
     sys.exit(2)
 
 
 def do_scheme():
     logging.debug("MQCHS: DO scheme..")
-    print SCHEME
+    print(SCHEME)
 
 
 # read XML configuration passed from splunkd

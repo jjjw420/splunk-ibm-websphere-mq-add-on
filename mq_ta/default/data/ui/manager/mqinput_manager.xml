@@ -179,7 +179,7 @@
 
 							<view name="edit" />
 							<view name="create" />
-							<key name="exampleText">Response Handler arguments string. key=value,key2=value2.  DefaultQueueResponseHandler defaults(see documentation for available options): include_payload=true, use_mqmd_puttime=true, include_mqmd=false</key>
+							<key name="exampleText">Response Handler arguments string. key=value,key2=value2.  DefaultQueueResponseHandler defaults(see documentation for available options): include_payload=true, use_mqmd_puttime=true, log_payload_as_event=true, payload_quote_char=[doublequote], include_mqmd=false</key>
 						</element>
 
 					</elements>
