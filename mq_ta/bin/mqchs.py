@@ -264,23 +264,23 @@ class ChannelStatusPollerThread(threading.Thread):
                       " Thread Group:" + group_id)
 
         self.config_name = name
-        self.queue_manager_name = queue_manager_name
-        self.queue_manager_host = queue_manager_host
+        self.queue_manager_name = queue_manager_name.encode("ascii")
+        self.queue_manager_host = queue_manager_host.encode("ascii")
         self.port = port
-        self.server_conn_chl = str(server_connection_channel)
+        self.server_conn_chl = server_connection_channel.encode("ascii")
         self.mq_user_name = mq_user_name
         self.mq_password = mq_password
 
         if self.mq_user_name is not None:
-            if self.mq_user_name.strip() == "":
-                self.mq_user_name = None
-                self.mq_password = None
+            if self.mq_user_name.encode("ascii").strip() == "":
+                self.mq_user_name = ""
+                self.mq_password = ""
             else:
-                self.mq_user_name = self.mq_user_name.strip()
-                self.mq_password = self.mq_password.strip()
+                self.mq_user_name = self.mq_user_name.encode("ascii").strip()
+                self.mq_password = self.mq_password.encode("ascii").strip()
         else:
-            self.mq_user_name = None
-            self.mq_password = None
+            self.mq_user_name = ""
+            self.mq_password = ""
 
         self.channel_names = channel_names
         self.mqinput_interval = mqchs_interval
