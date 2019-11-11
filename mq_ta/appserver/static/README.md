@@ -12,9 +12,9 @@ Created from the Splunk modular input examples.
 ## Features
 
 * Simple UI based configuration via Splunk Manager
-* Poll  IBM Websphere MQ queues at interval or can be triggered from the Websphere MQ trigger monitor(future feature).
+* Poll  IBM Websphere MQ queues for messages at interval or can be triggered from the Websphere MQ trigger monitor(future feature).
 * Poll IBM Websphere MQ Channel Status statistics.
-* Uses regular splunk sourcetypes to process message ("Generic single line" or "syslog") 
+* Uses regular splunk sourcetypes for the events ("Generic single line" or "syslog") 
 * You can specify multiple queues or channels per data input.  You can specify whether to use a thread per data input or per queue/channel.
 * Automatic thread management.  No need to restart splunk after changes are made to a data input.  This includes adding and removing queues.
 * Includes default response handlers for queue input and channel status input.
@@ -22,21 +22,23 @@ Created from the Splunk modular input examples.
 
 ## Dependencies
 
-* Splunk 6.0+
-* PyMQI 1.2+
-* ctypes library for Python
+* Splunk 6.0+, 7+, 8+
+* PyMQI 1.5+
+* ctypes library for Python.  **NOTE: Splunk V8 has the ctypes libary installed by default for both Python2 and Python3.**  
 * IBM Websphere MQ Client Libraries V7+
 * Only currently supported on Linux (but Windows (and any other platform) should be possible if the platform versions of the PyMQI and ctypes libraries are installed) 
 
 ## Setup
 
-* Install the IBM Websphere MQ client.  
+* Install the IBM Websphere MQ client.  Ensure that the user that runs splunk has access to the MQ client libraries.  The easiest way to achieve this is to add the MQ client library locations (generaly /opt/mqm/lib) to the dynamic loader configuration (ld.so.conf). 
 * Get and build the PyMQI library.  You can download from here: https://github.com/dsuch/pymqi 
 * Untar the MQ modular input release to your $SPLUNK_HOME/etc/apps directory.
 * Copy the built PyMQI library to the $SPLUNK_HOME/etc/apps/mq_ta/bin folder.
-* Copy python c_types library directory to the $SPLUNK_HOME/etc/apps/mq_ta/bin directory.  
+* Copy python c_types library directory to the $SPLUNK_HOME/etc/apps/mq_ta/bin directory.  Splunk's Python interpreter is built with UCS-2.  Make sure you use a compatible _ctypes.so library.  **NOTE:  This step is not required if running Splunk V8+as the ctypes library is included for both Python2 and Python3.**  
 * Ensure that the pymqi and ctypes libraries can be imported when using the Splunk Python interpreter. 
 * Restart Splunk
+
+
 
 ## Response Handlers
 ### DefaultQueueResponseHandler
@@ -50,6 +52,8 @@ Created from the Splunk modular input examples.
    * `payload_limit=1024` - How many bytes of the payload to include in the splunk event.  Default: 1024 (1kb)  
    * `encode_payload=false/base64/hexbinary` - Encode the payload.   Default: false 
    * `make_payload_printable=false/true` - Escape non text values in the payload.  Default: true
+   * `log_payload_as_event=false/true` - If false do not log the payload as a name/value pair.  Default: false
+   * `payload_quote_char='/"` - Use a specific character to quote the "payload" kv value. Default: " (double quote)
 
 ### DefaultChannelStatusResponseHandler
 * Default handler for Channel Status Statistics.
@@ -67,7 +71,6 @@ Created from the Splunk modular input examples.
   * `gzip_events = true/false` - Gzip the events written to disk.
   * `write_events_folder = "/opt/brokerevents"` - Directory to which events must be written.  
 
-
 ## Logging
 
 Any modular input log errors will get written to $SPLUNK_HOME/var/log/splunk/splunkd.log.  Debug logging can be "enabled by changing the "ExecProcessor" property under "Server logging" to DEBUG.
@@ -76,7 +79,8 @@ Any modular input log errors will get written to $SPLUNK_HOME/var/log/splunk/spl
 
 * You are using Splunk 6+
 * Look for any errors in $SPLUNK_HOME/var/log/splunk/splunkd.log
-* Enable debug logging by changing the "ExecProcessor" property under "Server logging" to DEBUG.
+* Enable debug logging by changing the "ExecProcessor" property under "Server logging" to DEBUG.  This will output some debug at various places in the code.  
+Search for the following in Splunk: `index=_internal component=ExecProcessor mq_ta`
 * Ensure that the PyMQI and ctypes libraries can be imported when using the Splunk Python interpreter. 
 * Ensure that the IBM Websphere MQ libraries are available to the user which runs Splunk. 
 

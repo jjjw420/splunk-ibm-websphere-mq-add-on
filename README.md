@@ -12,9 +12,9 @@ Created from the Splunk modular input examples.
 ## Features
 
 * Simple UI based configuration via Splunk Manager
-* Poll  IBM Websphere MQ queues at interval or can be triggered from the Websphere MQ trigger monitor(future feature).
+* Poll  IBM Websphere MQ queues for messages at interval or can be triggered from the Websphere MQ trigger monitor(future feature).
 * Poll IBM Websphere MQ Channel Status statistics.
-* Uses regular splunk sourcetypes to process message ("Generic single line" or "syslog") 
+* Uses regular splunk sourcetypes for the events ("Generic single line" or "syslog") 
 * You can specify multiple queues or channels per data input.  You can specify whether to use a thread per data input or per queue/channel.
 * Automatic thread management.  No need to restart splunk after changes are made to a data input.  This includes adding and removing queues.
 * Includes default response handlers for queue input and channel status input.
@@ -22,7 +22,7 @@ Created from the Splunk modular input examples.
 
 ## Dependencies
 
-* Splunk 6.0+
+* Splunk 6.0+, 7+, 8+
 * PyMQI 1.5+
 * ctypes library for Python.  **NOTE: Splunk V8 has the ctypes libary installed by default for both Python2 and Python3.**  
 * IBM Websphere MQ Client Libraries V7+
@@ -52,8 +52,8 @@ Created from the Splunk modular input examples.
    * `payload_limit=1024` - How many bytes of the payload to include in the splunk event.  Default: 1024 (1kb)  
    * `encode_payload=false/base64/hexbinary` - Encode the payload.   Default: false 
    * `make_payload_printable=false/true` - Escape non text values in the payload.  Default: true
-   * `log_payload_as_event` - If false do not log the payload as a name/value pair.  Default: false
-   * `payload_quote_char` - Use a specific character to quote the "payload" kv value. Default: " (double quote)
+   * `log_payload_as_event=false/true` - If false do not log the payload as a name/value pair.  Default: false
+   * `payload_quote_char='/"` - Use a specific character to quote the "payload" kv value. Default: " (double quote)
 
 ### DefaultChannelStatusResponseHandler
 * Default handler for Channel Status Statistics.
@@ -70,7 +70,6 @@ Created from the Splunk modular input examples.
   * `write_events = true/false` - Write out the events to disk.  
   * `gzip_events = true/false` - Gzip the events written to disk.
   * `write_events_folder = "/opt/brokerevents"` - Directory to which events must be written.  
-
 
 ## Logging
 
