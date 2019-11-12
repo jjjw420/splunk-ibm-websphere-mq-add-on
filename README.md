@@ -24,7 +24,7 @@ Created from the Splunk modular input examples.
 
 * Splunk 6.0+, 7+, 8+
 * PyMQI 1.5+
-* ctypes library for Python.  **NOTE: Splunk V8 has the ctypes libary installed by default for both Python2 and Python3.**  
+* ctypes library for Python.  **NOTE: Splunk V8 has the ctypes libary installed by default for both Python2 and Python3.  See the dedicated section in the Troubleshooting section on where you can find or build a compatible _ctypes.so**  
 * IBM Websphere MQ Client Libraries V7+
 * Only currently supported on Linux (but Windows (and any other platform) should be possible if the platform versions of the PyMQI and ctypes libraries are installed) 
 
@@ -34,11 +34,9 @@ Created from the Splunk modular input examples.
 * Get and build the PyMQI library.  You can download from here: https://github.com/dsuch/pymqi 
 * Untar the MQ modular input release to your $SPLUNK_HOME/etc/apps directory.
 * Copy the built PyMQI library to the $SPLUNK_HOME/etc/apps/mq_ta/bin folder.
-* Copy python c_types library directory to the $SPLUNK_HOME/etc/apps/mq_ta/bin directory.  Splunk's Python interpreter is built with UCS-2.  Make sure you use a compatible _ctypes.so library.  **NOTE:  This step is not required if running Splunk V8+as the ctypes library is included for both Python2 and Python3.**  
+* Copy python c_types library directory to the $SPLUNK_HOME/etc/apps/mq_ta/bin directory.  Splunk's Python interpreter is built with UCS-2.  Make sure you use a compatible _ctypes.so library.  **NOTE:  This step is not required if running Splunk V8+ as the ctypes library is included for both Python2 and Python3.**  
 * Ensure that the pymqi and ctypes libraries can be imported when using the Splunk Python interpreter. 
 * Restart Splunk
-
-
 
 ## Response Handlers
 ### DefaultQueueResponseHandler
@@ -81,8 +79,72 @@ Any modular input log errors will get written to $SPLUNK_HOME/var/log/splunk/spl
 * Look for any errors in $SPLUNK_HOME/var/log/splunk/splunkd.log
 * Enable debug logging by changing the "ExecProcessor" property under "Server logging" to DEBUG.  This will output some debug at various places in the code.  
 Search for the following in Splunk: `index=_internal component=ExecProcessor mq_ta`
-* Ensure that the PyMQI and ctypes libraries can be imported when using the Splunk Python interpreter. 
+* Ensure that the PyMQI and ctypes libraries can be imported when using the Splunk Python interpreter.   See the "ctypes" specific section below. 
 * Ensure that the IBM Websphere MQ libraries are available to the user which runs Splunk. 
+
+### How to find a Splunk Python2 compatible "_ctypes.so" (pre Splunk V8)
+The number one problem most people experience with the installation is finding a compatible ctypes library for Splunk's Python2 interpreter(particulary _ctypes.so).  
+
+Splunk's Python2 interpreter was built using UCS2 whereas most of the recent builds on Ubuntu, CentOS, RHEL, etc. is built using UCS4 making the two incompatible.  Splunk V8 comes with the ctypes library installed for both the Python2 and Python3 interpreters by default making the installation much simpler.  But earlier versions of Splunk does not include a ctypes library by default.
+
+#### Determining what type of _ctypes.so you require.
+The easiest way to see whether a Python interpreter was built using UCS2 or UCS4 is to check the `sys.maxunicode` value.  
+For a UCS2 build the value returned will be 65535.  On a UCS4 build the value returned will be 1114111.  
+
+For instance - running the python2 interpreter that comes with Splunk:
+<pre>    
+  $ /opt/splunk/bin/python2
+  Python 2.7.15 (default, Jun 24 2019, 17:39:18)
+  [GCC 5.3.0] on linux2
+  Type "help", "copyright", "credits" or "license" for more information.
+  >>> import sys
+  >>> print sys.maxunicode
+  65535
+  >>>
+</pre>
+    
+The 65535 value means that Splunk's Python2 interpreter was built using UCS2.
+
+#### Determining if an existing _ctypes.so was built using UCS2 or UCS4
+The quickest way to determine if a _ctypes.so was built using UCS2 or UCS4 is to simply print the enclosed strings and searching for "UCS".  
+
+For instance - a _ctypes bullt using UCS4(incompatble with Splunk's Python2) will have the following output:  
+<pre>
+  $ strings _ctypes.so | grep UCS
+  PyUnicodeUCS4_AsWideChar
+  PyUnicodeUCS4_FromEncodedObject
+  PyUnicodeUCS4_FromWideChar
+  PyUnicodeUCS4_AsEncodedString
+  PyUnicodeUCS4_FromUnicode
+</pre>
+A version that will be compatible with Splunk's Python2 will have output that looks as follows:
+<pre>
+  $ strings lib-dynload/_ctypes.so  | grep UCS
+  PyUnicodeUCS2_AsWideChar
+  PyUnicodeUCS2_FromEncodedObject
+  PyUnicodeUCS2_FromWideChar
+  PyUnicodeUCS2_AsEncodedString
+  PyUnicodeUCS2_FromUnicode
+  PyUnicodeUCS2_FromWideChar
+  PyUnicodeUCS2_FromUnicode
+  PyUnicodeUCS2_FromEncodedObject
+  PyUnicodeUCS2_AsWideChar
+  PyUnicodeUCS2_AsEncodedString
+  PyUnicodeUCS2_AsWideChar
+  PyUnicodeUCS2_FromEncodedObject
+  PyUnicodeUCS2_FromWideChar
+  PyUnicodeUCS2_AsEncodedString
+  PyUnicodeUCS2_FromUnicode
+</pre>
+**NOTE: If no strings containing "UCS" was found the library is NOT compatible and almost certainly a Python3 version that cannot be used with Python2.**   
+
+#### Where to find a compatible _ctypes.so
+* Upgrade to Splunk V8.  All you will require is the pymqi library as Splunk V8 comes with the ctypes library pre-installed.
+* The ctypes library that comes with Splunk V8 is compatible with earlier versions of Splunk (Only verified on Splunk 7.1+ - however technically it should work on any Splunk Python2 that is built using UCS2). 
+* Build your own on your own platform!   If you download the Python2 source code you can build your own "UCS2" Python2 (and the subsequent _ctypes.so) by setting the "--enable-unicode=ucs2" option on the "configure" step.  eg.
+`./configure --enable-unicode=ucs2`
+* Some users have commented that on Ubuntu some of the "Steam" apps contain a compatible _ctypes.so.  This is unconfirmed and seems to be version and app dependent.  I found a few _ctypes.so libraries on on my system (Ubuntu 18.04) however all of them was built using UCS4 instead of the required UCS2.
+* Send me an email and I can help you find or build one for your platform.   I do not like sending prebuilt libraries about as there are implications (eg. security, compatibility, etc.) I prefer not to be involved with as a 3rd party.  I prefer you help yourself!
 
 
 ## DISCLAIMER
