@@ -92,46 +92,50 @@ The easiest way to see whether a Python interpreter was built using UCS2 or UCS4
 For a UCS2 build the value returned will be 65535.  On a UCS4 build the value returned will be 1114111.  
 
 For instance - running the python2 interpreter that comes with Splunk:
-`$ /opt/splunk/bin/python2`
-`Python 2.7.15 (default, Jun 24 2019, 17:39:18) `
-`[GCC 5.3.0] on linux2`
-`Type "help", "copyright", "credits" or "license" for more information.`
-`>>> import sys`
-`>>> print sys.maxunicode`
-`65535`
-`>>> `
-
+<pre>    
+  $ /opt/splunk/bin/python2
+  Python 2.7.15 (default, Jun 24 2019, 17:39:18)
+  [GCC 5.3.0] on linux2
+  Type "help", "copyright", "credits" or "license" for more information.
+  >>> import sys
+  >>> print sys.maxunicode
+  65535
+  >>>
+</pre>
+    
 The 65535 value means that Splunk's Python2 interpreter was built using UCS2.
 
 #### Determining if an existing _ctypes.so was built using UCS2 or UCS4
 The quickest way to determine if a _ctypes.so was built using UCS2 or UCS4 is to simply print the enclosed strings and searching for "UCS".  
 
 For instance - a _ctypes bullt using UCS4(incompatble with Splunk's Python2) will have the following output:  
-`$ strings _ctypes.so | grep UCS`
-`PyUnicodeUCS4_AsWideChar`
-`PyUnicodeUCS4_FromEncodedObject`
-`PyUnicodeUCS4_FromWideChar`
-`PyUnicodeUCS4_AsEncodedString`
-`PyUnicodeUCS4_FromUnicode`
-
+<pre>
+  $ strings _ctypes.so | grep UCS
+  PyUnicodeUCS4_AsWideChar
+  PyUnicodeUCS4_FromEncodedObject
+  PyUnicodeUCS4_FromWideChar
+  PyUnicodeUCS4_AsEncodedString
+  PyUnicodeUCS4_FromUnicode
+</pre>
 A version that will be compatible with Splunk's Python2 will have output that looks as follows:
-`$ strings lib-dynload/_ctypes.so  | grep UCS`
-`PyUnicodeUCS2_AsWideChar`
-`PyUnicodeUCS2_FromEncodedObject`
-`PyUnicodeUCS2_FromWideChar`
-`PyUnicodeUCS2_AsEncodedString`
-`PyUnicodeUCS2_FromUnicode`
-`PyUnicodeUCS2_FromWideChar`
-`PyUnicodeUCS2_FromUnicode`
-`PyUnicodeUCS2_FromEncodedObject`
-`PyUnicodeUCS2_AsWideChar`
-`PyUnicodeUCS2_AsEncodedString`
-`PyUnicodeUCS2_AsWideChar`
-`PyUnicodeUCS2_FromEncodedObject`
-`PyUnicodeUCS2_FromWideChar`
-`PyUnicodeUCS2_AsEncodedString`
-`PyUnicodeUCS2_FromUnicode`
-
+<pre>
+  $ strings lib-dynload/_ctypes.so  | grep UCS
+  PyUnicodeUCS2_AsWideChar
+  PyUnicodeUCS2_FromEncodedObject
+  PyUnicodeUCS2_FromWideChar
+  PyUnicodeUCS2_AsEncodedString
+  PyUnicodeUCS2_FromUnicode
+  PyUnicodeUCS2_FromWideChar
+  PyUnicodeUCS2_FromUnicode
+  PyUnicodeUCS2_FromEncodedObject
+  PyUnicodeUCS2_AsWideChar
+  PyUnicodeUCS2_AsEncodedString
+  PyUnicodeUCS2_AsWideChar
+  PyUnicodeUCS2_FromEncodedObject
+  PyUnicodeUCS2_FromWideChar
+  PyUnicodeUCS2_AsEncodedString
+  PyUnicodeUCS2_FromUnicode
+</pre>
 **NOTE: If no strings containing "UCS" was found the library is NOT compatible and almost certainly a Python3 version that cannot be used with Python2.**   
 
 #### Where to find a compatible _ctypes.so
