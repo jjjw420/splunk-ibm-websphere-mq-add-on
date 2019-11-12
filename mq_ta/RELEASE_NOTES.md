@@ -20,7 +20,6 @@ Fix default options for DefaultQueueResponseHandler.
 Improve Documentation.
 
 # Version 1.0
------
 
 First Release.
 

@@ -65,9 +65,9 @@ Created from the Splunk modular input examples.
 * Supported options:
   * `include_complex_top_level = true/false` - Include the complex type top level element when logged.
   * `include_bitstream = true/false` - Include the bitstream (base64 or blob) in the splunk event.
-  * `write_events = true/false` - Write out the events to disk.  
+  * `write_events = true/false` - Write out the events to disk.  NOTE:  Splunk must have access to the folder to which the events will be written to.
   * `gzip_events = true/false` - Gzip the events written to disk.
-  * `write_events_folder = "/opt/brokerevents"` - Directory to which events must be written.  
+  * `write_events_folder =folder` - Folder to which events must be written to.  NOTE:  Splunk must have access to the folder to which the events will be written to.  
 
 ## Logging
 
