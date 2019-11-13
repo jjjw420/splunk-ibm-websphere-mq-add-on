@@ -39,6 +39,15 @@ Created from the Splunk modular input examples.
 * Restart Splunk
 
 ## Response Handlers
+
+Even though the included response handlers works very well, you are encouraged to create your own
+response handlers to handle a specific type or format of MQ message.  Every site that has IBM MQ will 
+have custom formats for mesages and which will be written in a variety of different codepages 
+depending on the platform.  
+By creating your own response handler you can parse your specific MQ message and index the event in 
+Splunk so that it's attributes are accessible for searches.  Let the included response handlers 
+serve as examples to your own.
+
 ### DefaultQueueResponseHandler
 * Basic handler for MQ messages.
 * Supported options: 
