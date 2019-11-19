@@ -409,7 +409,8 @@ class ChannelStatusPollerThread(threading.Thread):
                                     pymqi.CMQCFC.MQRCCF_CHL_STATUS_NOT_FOUND:
                                 logging.debug("No status for channel '%s'." %
                                               channel_name)
-                            raise
+                            else:
+                                raise
                     else:
                         handle_output(self.splunk_host,
                                       self.queue_manager_name,
