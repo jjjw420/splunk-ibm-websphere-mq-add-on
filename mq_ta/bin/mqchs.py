@@ -404,7 +404,7 @@ class ChannelStatusPollerThread(threading.Thread):
                             if e.comp == pymqi.CMQC.MQCC_FAILED and \
                                e.reason == \
                                     pymqi.CMQCFC.MQRCCF_CHL_STATUS_NOT_FOUND:
-                                logging.debug("No status for channel '%s'." %
+                                logging.info("No status for channel '%s'." %
                                               channel_name)
                             else:
                                 raise
