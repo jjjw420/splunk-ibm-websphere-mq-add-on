@@ -181,10 +181,10 @@ def do_run():
     queue_manager_host = config.get("queue_manager_host")
     port = int(config.get("port", 1414))
     server_connection_channel = config.get("server_connection_channel",
-                                           "SYSTEM.ADMIN,SVRCON")
+                                           "SYSTEM.ADMIN.SVRCON")
 
-    mq_user_name = config.get("mq_user_name")
-    mq_password = config.get("mq_password")
+    mq_user_name = config.get("mq_user_name", "")
+    mq_password = config.get("mq_password", "")
 
     channel_names = config.get("channel_names")
 
@@ -272,10 +272,7 @@ class ChannelStatusPollerThread(threading.Thread):
         self.mq_password = mq_password
 
         if self.mq_user_name is not None:
-            if self.mq_user_name.encode("ascii").strip() == "":
-                self.mq_user_name = ""
-                self.mq_password = ""
-            else:
+            if len(self.mq_user_name.encode("ascii").strip()) > 0:
                 self.mq_user_name = self.mq_user_name.encode("ascii").strip()
                 self.mq_password = self.mq_password.encode("ascii").strip()
         else:

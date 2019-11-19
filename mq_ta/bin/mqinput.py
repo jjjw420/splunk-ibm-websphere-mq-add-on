@@ -212,8 +212,8 @@ def do_run():
     server_connection_channel = config.get("server_connection_channel",
                                            "SYSTEM.ADMIN,SVRCON")
 
-    mq_user_name = config.get("mq_user_name")
-    mq_password = config.get("mq_password")
+    mq_user_name = config.get("mq_user_name", "")
+    mq_password = config.get("mq_password", "")
     queue_names = config.get("queue_names")
 
     if queue_names is not None:
@@ -343,10 +343,7 @@ class QueuePollerThread(threading.Thread):
         self._qm = None
 
         if self.mq_user_name is not None:
-            if self.mq_user_name.encode("ascii").strip() == "":
-                self.mq_user_name = ""
-                self.mq_password = ""
-            else:
+            if len(self.mq_user_name.encode("ascii").strip()) > 0:
                 self.mq_user_name = self.mq_user_name.encode("ascii").strip()
                 self.mq_password = self.mq_password.encode("ascii").strip()
         else:
