@@ -1,4 +1,4 @@
-# splunk-ibm-websphere-mq-add-on - mq_ta
+# splunk-ibm-websphere-mq-add-on - TA_mq
 
 By Hannes Wagener - 2015 
 
@@ -33,8 +33,8 @@ Created from the Splunk modular input examples.
 * Install the IBM Websphere MQ client.  
 * Get and build the PyMQI library.  You can download from here: https://github.com/dsuch/pymqi 
 * Untar the MQ modular input release to your $SPLUNK_HOME/etc/apps directory.
-* Copy the built PyMQI library to the $SPLUNK_HOME/etc/apps/mq_ta/bin folder.
-* Copy python c_types library directory to the $SPLUNK_HOME/etc/apps/mq_ta/bin directory.  
+* Copy the built PyMQI library to the $SPLUNK_HOME/etc/apps/TA_mq/bin folder.
+* Copy python c_types library directory to the $SPLUNK_HOME/etc/apps/TA_mq/bin directory.  
 * Ensure that the pymqi and ctypes libraries can be imported when using the Splunk Python interpreter. 
 * Restart Splunk
 
