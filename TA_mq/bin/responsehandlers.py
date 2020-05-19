@@ -260,6 +260,10 @@ class DefaultQueueResponseHandler(object):
 
 
 class JSONFormatterResponseHandler(object):
+    """
+    Basic JSON message response handler.
+
+    """
 
     def __init__(self, **args):
         pass
@@ -481,6 +485,10 @@ def encodeXMLText(text):
 
 class BrokerEventResponseHandler(object):
     """
+    This response handler can be used to read IBM Message Broker/Integration Bus 
+    event messages from a queue.
+
+    Options:
     include_complex_top_level = true/false
     include_bitstream = true/false
     write_events = true/false
@@ -742,7 +750,6 @@ class BrokerEventResponseHandler(object):
 # Channel Status Response handlers
 #####################################
 
-
 class DefaultChannelStatusResponseHandler(object):
 
     """
@@ -826,6 +833,8 @@ class DefaultChannelStatusResponseHandler(object):
     def __call__(self, splunk_host, queue_manager_name,
                  conf_channel_name, pcf_response, **kw):
         """
+
+Example mqsc and PCF output.        
 CHANNEL(LDB0.TO.LDB1)                   CHLTYPE(SDR)
 BATCHES(457)                            BATCHSZ(50)
 BUFSRCVD(459)                           BUFSSENT(2002)
@@ -1289,7 +1298,22 @@ MQCHSSTATE_COMPRESSING = 1800
 
 class ErrorQueueResponseHandler(object):
     """
-    Custom XML Error message format.
+    Custom XML Error message format. 
+    Can be used as an example of how to implement a custom response 
+    handler for a particular message format.
+
+    include_mqmd=true/false
+    pretty_mqmd=true/false
+    include_blob=true/false
+    extract_elements=true/false
+    extract_message_header=true/false
+    filter_text_elements=true/false
+    use_mqmd_puttime=true/false
+    blob_limit=1024
+    make_mqmd_printable=true/false
+    write_messages_folder=/some/folder
+    write_messages=true/false
+    gzip_messages=true/false
 
     """
     def __init__(self,**args):

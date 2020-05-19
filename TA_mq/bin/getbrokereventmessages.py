@@ -38,10 +38,10 @@ except:
 
 MONGODB_HOST = "127.0.0.1"
 MONGODB_PORT = 27017
-MONGODB_DB_NAME = "brkerrs"
-MONGODB_USER = "splunk"
-MONGODB_PASSWORD = "splunk"
-MONGODB_AUTH_DB = "admin"
+MONGODB_DB_NAME = ""
+MONGODB_USER = ""
+MONGODB_PASSWORD = ""
+MONGODB_AUTH_DB = ""
 MONGODB_USE_AUTH = False
 
 mongodb_client = None
