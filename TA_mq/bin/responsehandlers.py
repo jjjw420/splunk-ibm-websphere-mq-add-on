@@ -27,6 +27,7 @@ import lxml
 import logging
 import gzip
 import re
+import copy
 
 import pymqi
 from pymqi import CMQC as CMQC
@@ -1665,3 +1666,190 @@ class ErrorQueueResponseHandler(object):
         else:
             splunk_event = splunk_event + index_time + host + process + queue_manager_name_str +  queue_str + msg_id + message_file_name +  mqmd_str + payload
             print_xml_single_instance_mode(splunk_host, splunk_event)
+
+
+class BrokerJSONResourceStats(object):
+    """"
+    The BrokerJSONResourceStats uses the syslog input type and
+    supports the following options:
+
+    BrokerJSONResourceStats arguments:
+       
+        use_mqmd_puttime=false/true - Use the message put time as the
+        event time.  Default: false
+
+        use_json_start_time=false/true - Use the message put time as the
+        event time.  Default: true
+
+        add_time_element = false/true - Add a time element to the top of 
+        the json for easy splunk parsing. Default: true
+
+        log_as_syslog=false/true - Log as a syslog type message instead of pure json.
+        Default: false
+
+    """
+
+    def __init__(self, **args):
+
+        #logging.error("default queue handler _init_")
+        self.args = args
+      
+        if "use_mqmd_puttime" in self.args:
+            if self.args["use_mqmd_puttime"].lower().strip() == "true":
+                self.use_mqmd_puttime = True
+            else:
+                self.use_mqmd_puttime = False
+        else:
+            self.use_mqmd_puttime = False
+
+        if "use_json_start_time" in self.args:
+            if self.args["use_json_start_time"].lower().strip() == "true":
+                self.use_json_start_time = True
+            else:
+                self.use_json_start_time = False
+        else:
+            self.use_json_start_time = True
+
+        if "add_time_element" in self.args:
+            if self.args["add_time_element"].lower().strip() == "true":
+                self.add_time_element = True
+            else:
+                self.add_time_element = False
+        else:
+            self.add_time_element = True
+
+        if "log_as_syslog" in self.args:
+            if self.args["log_as_syslog"].lower().strip() == "true":
+                self.log_as_syslog = True
+            else:
+                self.log_as_syslog = False
+        else:
+            self.log_as_syslog = False            
+
+        if "separate_into_events" in self.args:
+            if self.args["separate_into_events"].lower().strip() == "true":
+                self.separate_into_events = True
+            else:
+                self.separate_into_events = False
+        else:
+            self.separate_into_events = True            
+
+
+    def __call__(self, splunk_host, queue_manager_name, queue, msg_data,
+                 msg_desc, from_trigger, **kw):
+
+        splunk_event = ""
+        #logging.error("default queue handler _call_")
+        mqmd_str = ""
+
+      
+        splunk_event = ""
+        payload = ""
+        pos = msg_data.find('{"ResourceStatistics')
+        if pos > 0:
+            payload = msg_data[pos:]
+        else:
+            payload = msg_data[:]
+
+        if self.log_as_syslog:
+
+            index_time = "[" + \
+                        datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3] + \
+                        " " + time.strftime("%z") + "]"
+
+            if self.use_mqmd_puttime:
+                puttime = datetime.datetime.strptime(msg_desc["PutDate"] +
+                                                    " " +
+                                                    msg_desc["PutTime"][0:6],
+                                                    "%Y%m%d %H%M%S")
+                # puttime = puttime.replace(tzinfo=pytz.timezone("GMT"))
+                localtime = puttime - datetime.timedelta(seconds=time.timezone)
+
+                h_secs = msg_desc["PutTime"][6:]
+                index_time = "[" + localtime.strftime("%Y-%m-%d %H:%M:%S") + \
+                            "." + h_secs + "0 " + \
+                            time.strftime("%z") + "]"
+
+
+            queue_manager_name_str = " queue_manager=%s" % queue_manager_name
+            queue = " queue=%s" % queue
+            host = " " + splunk_host
+            process = " mqinput(%i):" % os.getpid()
+
+            splunk_event = splunk_event + index_time + host + process + \
+                            queue_manager_name_str + queue + \
+                            payload
+            
+            print_xml_single_instance_mode(splunk_host, splunk_event)
+        else:
+            
+            if self.add_time_element:
+                index_time = ""
+                if self.use_mqmd_puttime:
+                    puttime = datetime.datetime.strptime(msg_desc["PutDate"] +
+                                                 " " +
+                                                 msg_desc["PutTime"][0:6],
+                                                 "%Y%m%d %H%M%S")
+                    # puttime = puttime.replace(tzinfo=pytz.timezone("GMT"))
+                    localtime = puttime - datetime.timedelta(seconds=time.timezone)
+
+                    h_secs = msg_desc["PutTime"][6:]
+                    index_time = localtime.strftime("%Y-%m-%d %H:%M:%S") + \
+                                "." + h_secs + "0 " + \
+                                time.strftime("%z")
+                else:
+                    if self.use_json_start_time:
+                        try:
+                            j_obj = json.loads(payload)
+                            puttime = datetime.datetime.strptime(j_obj["ResourceStatistics"]["startDate"] +
+                                                    " " +
+                                                    j_obj["ResourceStatistics"]["startTime"],
+                                                    "%Y-%m-%d %H:%M:%S")
+                            # puttime = puttime.replace(tzinfo=pytz.timezone("GMT"))
+                            #localtime = puttime - datetime.timedelta(seconds=time.timezone)
+                           
+                            index_time = puttime.strftime("%Y-%m-%d %H:%M:%S") + \
+                            ".000 +0200"
+                        except Exception as ex:
+                            logging.error("Exception occured. " + str(ex)) 
+
+                    else:
+                        index_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3] + \
+                                    " " + time.strftime("%z")
+                
+                if self.separate_into_events:
+                    j_obj = json.loads(payload)
+
+                    rs = copy.deepcopy(j_obj["ResourceStatistics"])
+                    del(rs["ResourceType"])
+
+                    for rt in j_obj["ResourceStatistics"]["ResourceType"]:
+                        #new_rs = copy.deepcopy(rs)
+                        #new_rs["resourceType"] = rt["name"]
+                        
+                        for ri in rt["resourceIdentifier"]:
+                            new_rs = copy.deepcopy(rs)
+                            new_rs["resourceType"] = rt["name"]
+                            new_rs["resourceStatistics"] = ri
+                            #print("----------------------------")
+                            payload = json.dumps(new_rs)
+                            #print("----------------------------")
+                            if payload.startswith("{"):
+                                payload = '{"time": "%s",' % index_time + payload[1:]
+            
+                            splunk_event = splunk_event + payload
+                            print_xml_single_instance_mode(splunk_host, splunk_event)    
+                else:
+                
+                    if payload.startswith("{"):
+                        payload = '{"time": "%s",' % index_time + payload[1:]
+            
+                    splunk_event = splunk_event + payload
+                    print_xml_single_instance_mode(splunk_host, splunk_event)    
+    
+        # # handle trigger
+        # if from_trigger:
+        #     pass
+        # else:
+        #     print_xml_single_instance_mode(splunk_host, splunk_event)
+
