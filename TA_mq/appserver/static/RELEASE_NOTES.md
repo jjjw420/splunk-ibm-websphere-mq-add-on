@@ -1,3 +1,7 @@
+1.4
+-----
+Python 3 and fixes.
+
 1.3
 -----
 Add support for MQ authentication.
