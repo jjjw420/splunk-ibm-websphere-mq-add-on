@@ -181,10 +181,10 @@ def do_run():
     queue_manager_host = config.get("queue_manager_host")
     port = int(config.get("port", 1414))
     server_connection_channel = config.get("server_connection_channel",
-                                           "SYSTEM.ADMIN,SVRCON")
+                                           "SYSTEM.ADMIN.SVRCON")
 
-    mq_user_name = config.get("mq_user_name")
-    mq_password = config.get("mq_password")
+    mq_user_name = config.get("mq_user_name", "")
+    mq_password = config.get("mq_password", "")
 
     channel_names = config.get("channel_names")
 
@@ -264,23 +264,20 @@ class ChannelStatusPollerThread(threading.Thread):
                       " Thread Group:" + group_id)
 
         self.config_name = name
-        self.queue_manager_name = queue_manager_name
-        self.queue_manager_host = queue_manager_host
+        self.queue_manager_name = queue_manager_name.encode("ascii")
+        self.queue_manager_host = queue_manager_host.encode("ascii")
         self.port = port
-        self.server_conn_chl = str(server_connection_channel)
+        self.server_conn_chl = server_connection_channel.encode("ascii")
         self.mq_user_name = mq_user_name
         self.mq_password = mq_password
 
         if self.mq_user_name is not None:
-            if self.mq_user_name.strip() == "":
-                self.mq_user_name = None
-                self.mq_password = None
-            else:
-                self.mq_user_name = self.mq_user_name.strip()
-                self.mq_password = self.mq_password.strip()
+            if len(self.mq_user_name.encode("ascii").strip()) > 0:
+                self.mq_user_name = self.mq_user_name.encode("ascii").strip()
+                self.mq_password = self.mq_password.encode("ascii").strip()
         else:
-            self.mq_user_name = None
-            self.mq_password = None
+            self.mq_user_name = ""
+            self.mq_password = ""
 
         self.channel_names = channel_names
         self.mqinput_interval = mqchs_interval
@@ -407,9 +404,10 @@ class ChannelStatusPollerThread(threading.Thread):
                             if e.comp == pymqi.CMQC.MQCC_FAILED and \
                                e.reason == \
                                     pymqi.CMQCFC.MQRCCF_CHL_STATUS_NOT_FOUND:
-                                logging.debug("No status for channel '%s'." %
+                                logging.info("No status for channel '%s'." %
                                               channel_name)
-                            raise
+                            else:
+                                raise
                     else:
                         handle_output(self.splunk_host,
                                       self.queue_manager_name,
