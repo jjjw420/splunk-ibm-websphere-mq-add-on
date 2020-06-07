@@ -30,6 +30,9 @@ Created from the Splunk modular input examples.
 
 ## Setup
 
+**IMPORTANT:  The plgin folder has been renamed from "mq_ta" to "TA-mq".   MAke sure that you take this into account if you are upgrading the plugin.
+
+### Installation
 * Install the IBM Websphere MQ client.  Ensure that the user that runs splunk has access to the MQ client libraries.  The easiest way to achieve this is to add the MQ client library locations (generaly /opt/mqm/lib) to the dynamic loader configuration (ld.so.conf). 
 * Get and build the PyMQI library.  You can download from here: https://github.com/dsuch/pymqi 
 * Untar the MQ modular input release to your $SPLUNK_HOME/etc/apps directory.
@@ -37,6 +40,13 @@ Created from the Splunk modular input examples.
 * Copy python c_types library directory to the $SPLUNK_HOME/etc/apps/TA-mq/bin directory.  Splunk's Python interpreter is built with UCS-2.  Make sure you use a compatible _ctypes.so library.  **NOTE:  This step is not required if running Splunk V8+as the ctypes library is included for both Python2 and Python3.**  
 * Ensure that the pymqi and ctypes libraries can be imported when using the Splunk Python interpreter. 
 * Restart Splunk
+
+### Upgrade
+* Take a backup of your installation.   The  $SPLUNK_HOME/etc/apps directory is very important to backup.
+* Untar the MQ modular input release to your $SPLUNK_HOME/etc/apps directory.  
+* If you still have the $SPLUNK_HOME/etc/apps/mq_ta directory make sure you migrate all your "local" splunk config to the new $SPLUNK_HOME/etc/apps/TA-mq directory.  Delete the old $SPLUNK_HOME/etc/apps/mq_ta directory(do not rename it - delete it).
+* Restart your Splunk instance.
+
 
 ## Response Handlers
 
