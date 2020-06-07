@@ -30,7 +30,7 @@ Created from the Splunk modular input examples.
 
 ## Setup
 
-**IMPORTANT:  The plgin folder has been renamed from "mq_ta" to "TA-mq".   MAke sure that you take this into account if you are upgrading the plugin.
+**IMPORTANT:  The plugin folder has been renamed from "mq_ta" to "TA-mq".   Make sure that you take this into account if you are upgrading the plugin.**
 
 ### Installation
 * Install the IBM Websphere MQ client.  Ensure that the user that runs splunk has access to the MQ client libraries.  The easiest way to achieve this is to add the MQ client library locations (generaly /opt/mqm/lib) to the dynamic loader configuration (ld.so.conf). 
