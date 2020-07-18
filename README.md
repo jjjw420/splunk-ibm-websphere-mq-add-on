@@ -19,10 +19,11 @@ Created from the Splunk modular input examples.
 * Automatic thread management.  No need to restart splunk after changes are made to a data input.  This includes adding and removing queues.
 * Includes default response handlers for queue input and channel status input.
 * Includes a response handler for IBM Websphere Message Broker monitoring events.
+* Tested on both Python2 and Python3 in Splunk V8.
 
 ## Dependencies
 
-* Splunk 6.0+, 7+, 8+
+* Splunk 6.0+, 7+, 8+ (Python2 or Python3 in Splunk V8).
 * PyMQI 1.5+
 * ctypes library for Python.  **NOTE: Splunk V8 has the ctypes libary installed by default for both Python2 and Python3.  See the dedicated section in the Troubleshooting section on where you can find or build a compatible _ctypes.so**  
 * IBM Websphere MQ Client Libraries V7+
