@@ -12,9 +12,9 @@ Created from the Splunk modular input examples.
 ## Features
 
 * Simple UI based configuration via Splunk Manager
-* Poll  IBM Websphere MQ queues for messages at interval or can be triggered from the Websphere MQ trigger monitor(future feature).
+* Poll IBM Websphere MQ queues for messages at interval.
 * Poll IBM Websphere MQ Channel Status statistics.
-* Uses regular splunk sourcetypes for the events ("Generic single line" or "syslog") 
+* Uses regular splunk sourcetypes for the events ("Generic single line", "_json" or "syslog")  
 * You can specify multiple queues or channels per data input.  You can specify whether to use a thread per data input or per queue/channel.
 * Automatic thread management.  No need to restart splunk after changes are made to a data input.  This includes adding and removing queues.
 * Includes default response handlers for queue input and channel status input.

@@ -187,12 +187,25 @@ def do_run():
     mq_password = config.get("mq_password", "")
 
     channel_names = config.get("channel_names")
+    
+    if not isinstance(queue_manager_name, str):
+        queue_manager_name = queue_manager_name.encode("ascii")
+    if not isinstance(queue_manager_host, str):
+        queue_manager_host = queue_manager_host.encode("ascii")
+    if not isinstance(server_connection_channel, str):
+        server_connection_channel = server_connection_channel.encode("ascii")
+    if not isinstance(mq_user_name, str):
+        mq_user_name = mq_user_name.encode("ascii")
+    if not isinstance(mq_password, str):
+        mq_password = mq_password.encode("ascii")
+    if not isinstance(channel_names, str):
+        channel_names = channel_names.encode("ascii")
 
     if channel_names is not None:
         channel_name_list = list(map(str, channel_names.split(",")))
         # trim any whitespace using a list comprehension
         channel_name_list = [x.strip(' ') for x in channel_name_list]
-
+        
     splunk_host = config.get("host")
     name = config.get("name")
 

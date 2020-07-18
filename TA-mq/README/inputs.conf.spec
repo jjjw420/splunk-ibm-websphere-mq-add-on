@@ -28,10 +28,6 @@ mqinput_interval= <value>
 *Keep the MQ connection open
 persistent_connection= <value>
 
-
-*Whether or not to be trigger by websphere mq
-use_mq_triggering= <value>
-
 *Whether to start a process dedicated per queue or whether to start a process that will service all queues sequentialy.
 start_process_per_queue= <value>
 

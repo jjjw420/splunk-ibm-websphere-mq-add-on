@@ -75,7 +75,7 @@
 				</element>
 
 				<element name="polling_details" type="fieldset">
-					<key name="legend">Polling and Triggering</key>
+					<key name="legend">Polling</key>
 					<view name="edit" />
 					<view name="create" />
 					<view name="list" />
@@ -125,12 +125,6 @@
 									<key name="exampleText">Start multiple processes.</key>
 								</element>
 							</elements>
-						</element>
-
-						<element name="use_mq_triggering" type="checkbox" label="Use MQ triggering">
-							<view name="edit" />
-							<view name="create" />
-							<key name="exampleText">Use MQ triggering instead of polling interval. NOT IMPLEMENTED.</key>
 						</element>
 					</elements>
 				</element>

@@ -41,8 +41,7 @@ logging.basicConfig(level=logging.DEBUG, format='%(levelname)s %(message)s')
 
 class DefaultQueueResponseHandler(object):
     """"
-    The DefaultResponseHandler uses the "syslog" input type and
-    supports the following options:
+    The DefaultResponseHandler supports the following options:
 
     DefaultQueueResponseHandler arguments:
         include_payload=false/true - Include the message payload in the event.
@@ -72,13 +71,14 @@ class DefaultQueueResponseHandler(object):
         payload_quote_char='"' - Use a specific chararacter for the payload quote character.  
         Default is '"'.
 
-        log_payload_as_event=true/false - If false do not wrap the payload in a name value pair.  eg. payload=""  Default is true.
+        log_payload_as_event=true/false - If false, do not wrap the payload in a name value pair and log the payload as the full event.
+        If true the event will be wrapped in a payload element.  eg. payload=""  Default is true.
 
     """
 
     def __init__(self, **args):
 
-        #logging.error("default queue handler _init_")
+        logging.error("default queue handler _init_")
         self.args = args
         self.mqmd_dicts = None
 
@@ -179,11 +179,11 @@ class DefaultQueueResponseHandler(object):
             self.payload_quote_char = '"'
 
 
-    def __call__(self, splunk_host, queue_manager_name, queue, msg_data,
-                 msg_desc, from_trigger, **kw):
+    def __call__(self, splunk_host, name, queue_manager_name, queue, msg_data,
+                 msg_desc, **kw):
 
         splunk_event = ""
-        #logging.error("default queue handler _call_")
+        logging.debug("default queue handler _call_")
         mqmd_str = ""
         if self.include_mqmd and (msg_desc is not None):
             new_mqmd = make_mqmd(msg_desc, self.mqmd_dicts,
@@ -197,31 +197,42 @@ class DefaultQueueResponseHandler(object):
                                 " %s=%s" % (str(mqmd_key).strip(),
                                             str(mqmd_value))
                 else:
+                    if isinstance(mqmd_value, bytes):
+                        mqmd_value = mqmd_value.decode("ascii")
                     mqmd_str = mqmd_str + \
                                 ' %s="%s"' % (str(mqmd_key).strip(),
                                               str(mqmd_value))
-
+        #logging.debug("mqmd mapped")
         index_time = "[" + \
             datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3] + \
             " " + time.strftime("%z") + "]"
-
+        #logging.debug("after index time")
+        event_time = None
         if self.use_mqmd_puttime:
-            puttime = datetime.datetime.strptime(msg_desc["PutDate"] +
+
+            logging.debug("use mqmd puttime")
+            logging.debug('msg_desc["PutDate"]:' +  str(msg_desc["PutDate"]) + str(msg_desc["PutTime"]))
+            puttime = datetime.datetime.strptime(msg_desc["PutDate"].decode("ascii") +
                                                  " " +
-                                                 msg_desc["PutTime"][0:6],
+                                                 msg_desc["PutTime"][0:6].decode("ascii"),
                                                  "%Y%m%d %H%M%S")
+
+            logging.debug("puttime set")
             # puttime = puttime.replace(tzinfo=pytz.timezone("GMT"))
             localtime = puttime - datetime.timedelta(seconds=time.timezone)
 
-            h_secs = msg_desc["PutTime"][6:]
+            h_secs = msg_desc["PutTime"][6:].decode("ascii")
+            logging.debug("before mqmd put index time")
             index_time = "[" + localtime.strftime("%Y-%m-%d %H:%M:%S") + \
                          "." + h_secs + "0 " + \
                          time.strftime("%z") + "]"
 
+            event_time = str(localtime.timestamp())
+
         payload = ""
         logging.debug("B4 include payload.")
-        if self.log_payload_as_event:
-            payload_el_str = ' %s'
+        if not self.log_payload_as_event:
+            payload_el_str = '%s'
         else:
             payload_el_str = ' payload=' + self.payload_quote_char + "%s" + self.payload_quote_char
 
@@ -230,62 +241,64 @@ class DefaultQueueResponseHandler(object):
         if self.include_payload:
             if self.encode_payload == "base64":
                 payload = payload_el_str % \
-                    str(base64.encodestring(msg_data[:self.payload_limit]))
+                    str(base64.encodestring(msg_data[:self.payload_limit].decode("ascii")))
             else:
                 if self.encode_payload == "hexbinary":
                     payload = payload_el_str % \
-                        str(binascii.hexlify(msg_data[:self.payload_limit]))
+                        str(binascii.hexlify(msg_data[:self.payload_limit].decode("ascii")))
                 else:
                     if self.make_payload_printable:
                         payload = payload_el_str % \
-                            make_printable(msg_data[:self.payload_limit])
+                            make_printable(msg_data[:self.payload_limit].decode("ascii"))
                     else:
                         payload = payload_el_str % \
-                            msg_data[:self.payload_limit]
+                            msg_data[:self.payload_limit].decode("ascii")
 
-        queue_manager_name_str = " queue_manager=%s" % queue_manager_name
-        queue = " queue=%s" % queue
-        host = " " + splunk_host
-        process = " mqinput(%i):" % os.getpid()
+        if self.log_payload_as_event:
+            queue_manager_name_str = " queue_manager=%s" % queue_manager_name
+            queue = " queue=%s" % queue
+            host = " " + splunk_host
+            process = " mqinput(%i):" % os.getpid()
 
-        splunk_event = splunk_event + index_time + host + process + \
-                        queue_manager_name_str + queue + mqmd_str + \
-                        payload
-
-        # handle trigger
-        if from_trigger:
-            pass
+            splunk_event = splunk_event + index_time + host + process + \
+                            queue_manager_name_str + queue + mqmd_str + \
+                            payload
         else:
-            print_xml_single_instance_mode(splunk_host, splunk_event)
+            splunk_event = splunk_event + payload
+
+        logging.debug("doing event: queue manager name:" + str(queue_manager_name))
+        logging.debug("doing event: queue name:" + str(queue))
+        
+        print_xml_single_instance_mode(splunk_host, splunk_event, event_time=event_time, name=name, queue_manager=queue_manager_name, queue=queue)
 
 
-class JSONFormatterResponseHandler(object):
-    """
-    Basic JSON message response handler.
+# class JSONFormatterResponseHandler(object):
+#     """
+#     Basic JSON message response handler.
 
-    """
+#     """
 
-    def __init__(self, **args):
-        pass
+#     def __init__(self, **args):
+#         pass
 
-    def __call__(self, response_object, destination, table=False,
-                 from_trap=False, trap_metadata=None, split_bulk_output=False,
-                 mibView=None):
-        # handle tables
-        if table:
-            values = []
-            for varBindTableRow in response_object:
-                row = {}
-                for name, val in varBindTableRow:
-                    row[name.prettyPrint()] = val.prettyPrint()
-                values.append(row)
-            print_xml_single_instance_mode(destination, json.dumps(values))
-        # handle scalars
-        else:
-            values = {}
-            for name, val in response_object:
-                values[name.prettyPrint()] = val.prettyPrint()
-            print_xml_single_instance_mode(destination, json.dumps(values))
+#     def __call__(self, response_object, destination, table=False,
+#                  from_trap=False, trap_metadata=None, split_bulk_output=False,
+#                  mibView=None):
+#         # handle tables
+#         if table:
+#             values = []
+#             for varBindTableRow in response_object:
+#                 row = {}
+#                 for name, val in varBindTableRow:
+#                     row[name.prettyPrint()] = val.prettyPrint()
+#                 values.append(row)
+#             print_xml_single_instance_mode(destination, json.dumps(values))
+#         # handle scalars
+#         else:
+#             values = {}
+#             for name, val in response_object:
+#                 values[name.prettyPrint()] = val.prettyPrint()
+#             print_xml_single_instance_mode(destination, json.dumps(values))
 
 
 def is_printable(char):
@@ -302,11 +315,26 @@ def make_printable(instr):
     '''Return a printable representation of the string instr.
     '''
     retstr = ''
-    for char in instr:
-        if not is_printable(char):
-            retstr = retstr + '.'
-        else:
-            retstr = retstr + char
+    logging.debug("here")
+    #logging.debug("instr: " + binascii.hexlify(instr).decode("ascii"))
+    logging.debug("there")
+    if isinstance(instr, bytes):
+        #     instr = instr.decode("ascii")
+
+        for char in instr:
+            if not is_printable(chr(char)):
+                retstr = retstr + '.'
+            else:
+                retstr = retstr + chr(char)
+    else:
+            #     instr = instr.decode("ascii")
+
+        for char in instr:
+            if not is_printable(char):
+                retstr = retstr + '.'
+            else:
+                retstr = retstr + char
+
     return retstr
 
 
@@ -327,7 +355,6 @@ def make_mqmd(msg_desc, mqmd_dicts, pretty_mqmd, make_mqmd_printable):
     else:
         mqmd_dict['StrucId'] = msg_desc['StrucId']
 
-    logging.debug("Make mqmd. after StrucId.")
     if pretty_mqmd and msg_desc['Version'] in mqmd_dicts["mqmd"]:
         mqmd_dict['Version'] = mqmd_dicts["mqmd"][msg_desc['Version']]
     else:
@@ -358,8 +385,6 @@ def make_mqmd(msg_desc, mqmd_dicts, pretty_mqmd, make_mqmd_printable):
     else:
         mqmd_dict['Encoding'] = msg_desc['Encoding']
 
-    logging.debug("Make mqmd. After encoding.")
-
     if pretty_mqmd and \
        msg_desc['CodedCharSetId'] in mqmd_dicts["mqccsi"]:
         mqmd_dict['CodedCharSetId'] = \
@@ -377,8 +402,6 @@ def make_mqmd(msg_desc, mqmd_dicts, pretty_mqmd, make_mqmd_printable):
     else:
         mqmd_dict['Priority'] = msg_desc['Priority']
 
-    logging.debug("Make mqmd. After Priority.")
-
     if pretty_mqmd and msg_desc['Persistence'] in mqmd_dicts["mqper"]:
         mqmd_dict['Persistence'] = mqmd_dicts["mqper"][msg_desc['Persistence']]
     else:
@@ -394,15 +417,11 @@ def make_mqmd(msg_desc, mqmd_dicts, pretty_mqmd, make_mqmd_printable):
     else:
         mqmd_dict['MsgFlags'] = msg_desc['MsgFlags']
 
-    logging.debug("Make mqmd. After MsgFlags.")
-
     if pretty_mqmd and msg_desc['OriginalLength'] in mqmd_dicts["mqol"]:
         mqmd_dict['OriginalLength'] = \
             mqmd_dicts["mqol"][msg_desc['OriginalLength']]
     else:
         mqmd_dict['OriginalLength'] = msg_desc['OriginalLength']
-
-    logging.debug("B4 make printable.")
 
     if make_mqmd_printable:
         mqmd_dict['MsgId'] = make_printable(msg_desc['MsgId'])
@@ -448,10 +467,23 @@ def make_mqmd(msg_desc, mqmd_dicts, pretty_mqmd, make_mqmd_printable):
 
 
 # prints XML stream
-def print_xml_single_instance_mode(server, event):
+def print_xml_single_instance_mode(server, event, event_time=None, name=None, queue_manager=None, queue=None):
 
-    print("<stream><event><data>%s</data><host>%s</host></event></stream>" % (
-        encodeXMLText(event), server))
+    if queue_manager is None or queue is None or name is None:
+        if event_time is not None:
+            print("<stream><event><data>%s</data><time>%s</time><host>%s</host></event></stream>" % (
+                encodeXMLText(event), event_time, server))
+        else:
+            print("<stream><event><data>%s</data><host>%s</host></event></stream>" % (
+                encodeXMLText(event), server))
+    else:
+        if event_time is not None:
+            print("<stream><event><data>%s</data><time>%s</time><host>%s</host><source>%s:%s:%s</source></event></stream>" % (
+                encodeXMLText(event), event_time, server, name, queue_manager, queue))
+        else:
+                        
+            print("<stream><event><data>%s</data><host>%s</host><source>%s:%s:%s</source></event></stream>" % (
+                encodeXMLText(event), server, name, queue_manager, queue))
 
 
 # prints XML stream
@@ -541,8 +573,8 @@ class BrokerEventResponseHandler(object):
 
         self.regex = re.compile(r"/[A-Za-z0-9]*:")
 
-    def __call__(self, splunk_host, queue_manager_name, queue, msg_data,
-                 msg_desc, from_trigger, **kw):
+    def __call__(self, splunk_host, name, queue_manager_name, queue, msg_data,
+                 msg_desc, **kw):
 
         splunk_event = ""
         event_file_name = ""
@@ -589,6 +621,8 @@ class BrokerEventResponseHandler(object):
                     full_file_name
             except Exception as ex:
                 logging.error("Failed to write event message. " + str(ex))
+        
+        event_time = None
 
         try:
 
@@ -597,7 +631,7 @@ class BrokerEventResponseHandler(object):
             nss = {'wmb': WMBNAMESPACE}
 
             doc = lxml.etree.fromstring(msg_data)
-
+            
             if self.use_event_time:
                 nl = doc.xpath(u"//wmb:eventSequence[1]/@wmb:creationTime",
                                namespaces=nss)
@@ -615,6 +649,8 @@ class BrokerEventResponseHandler(object):
                     index_time = "[" + \
                         index_time_o.strftime("%Y-%m-%d %H:%M:%S") + "." + \
                         h_secs + "0 " + time.strftime("%z") + "] "
+
+                    event_time = str(index_time_o.timestamp())
 
             broker = ""
             nl = doc.xpath(u"//wmb:messageFlowData[1]/wmb:broker/@wmb:name",
@@ -726,24 +762,21 @@ class BrokerEventResponseHandler(object):
                             bitstream_encoding % (nl[0].attrib[encoding_key])
                     bitstream_data = 'bitstream_data="{}" '
                     bitstream_data = bitstream_data.format(nl[0].text)
-            # handle trigger
-            if from_trigger:
-                pass
-            else:
-                splunk_event = splunk_event + index_time + host + \
-                               process + queue_manager_name_str + queue_str + \
-                               broker + exec_group + flow + node_details + \
-                               complex_content + simple_content + \
-                               event_file_name + bitstream_encoding + \
-                               bitstream_data
-                print_xml_single_instance_mode(splunk_host, splunk_event)
+
+            splunk_event = splunk_event + index_time + host + \
+                            process + queue_manager_name_str + queue_str + \
+                            broker + exec_group + flow + node_details + \
+                            complex_content + simple_content + \
+                            event_file_name + bitstream_encoding + \
+                            bitstream_data
+            print_xml_single_instance_mode(splunk_host, splunk_event,event_time=event_time, name=name, queue_manager=queue_manager_name,queue=queue)
 
         except Exception as ex:
             logging.error("Exception occured! Exception:" + str(ex))
             splunk_event = splunk_event + index_time + host + process + \
                 queue_manager_name_str + queue_str + event_file_name + \
                 ' error="Exception occured while processing event. Exception Text: %s"' % (str(ex))
-            print_xml_single_instance_mode(splunk_host, splunk_event)
+            print_xml_single_instance_mode(splunk_host, splunk_event, event_time=event_time, name=name, queue_manager=queue_manager_name,queue=queue)
 
 
 #####################################
@@ -1068,7 +1101,7 @@ MQCHSSTATE_COMPRESSING = 1800
                             splunk_event = splunk_event + \
                                 "MONCHL=%d " % channel_monitoring
 
-                logging.debug("After MONCHL.")
+                #logging.debug("After MONCHL.")
 
                 if pymqi.CMQCFC.MQIACH_BYTES_RCVD in channel_info:
                     bytes_received = \
@@ -1082,7 +1115,7 @@ MQCHSSTATE_COMPRESSING = 1800
 
                     splunk_event = splunk_event + "BYTSSENT=%d " % bytes_sent
 
-                logging.debug("After BYTSSENT.")
+                #logging.debug("After BYTSSENT.")
 
                 if pymqi.CMQCFC.MQIACH_BUFFERS_RCVD in channel_info:
                     buffers_received = \
@@ -1102,7 +1135,7 @@ MQCHSSTATE_COMPRESSING = 1800
 
                     splunk_event = splunk_event + "BATCHES=%d " % batches
 
-                logging.debug("After BATCHES.")
+                #logging.debug("After BATCHES.")
                 if pymqi.CMQCFC.MQIACH_BATCH_SIZE in channel_info:
                     batch_size = channel_info[pymqi.CMQCFC.MQIACH_BATCH_SIZE]
 
@@ -1125,7 +1158,7 @@ MQCHSSTATE_COMPRESSING = 1800
                             splunk_event = splunk_event + \
                                 "XBATCHSZ_LONG=%d " % batches_size_ind_long
 
-                logging.debug("After XBATCHSZ.")
+                #logging.debug("After XBATCHSZ.")
                 if pymqi.CMQCFC.MQIACH_CURRENT_MSGS in channel_info:
                     current_messages = \
                         channel_info[pymqi.CMQCFC.MQIACH_CURRENT_MSGS]
@@ -1152,7 +1185,7 @@ MQCHSSTATE_COMPRESSING = 1800
                     splunk_event = splunk_event + \
                         "LSTMSGTI=\"%s\" " % last_message_time.strip()
 
-                logging.debug("After LSTMSGTI.")
+                #logging.debug("After LSTMSGTI.")
                 if pymqi.CMQCFC.MQIACH_NETWORK_TIME_INDICATOR in channel_info:
                     network_time = \
                         channel_info[pymqi.CMQCFC.MQIACH_NETWORK_TIME_INDICATOR]
@@ -1199,7 +1232,7 @@ MQCHSSTATE_COMPRESSING = 1800
                             splunk_event = splunk_event + \
                                 "EXITTIME_LONG=%d " % exit_time_long
 
-                logging.debug("After EXTTIME.")
+                #logging.debug("After EXTTIME.")
                 if pymqi.CMQCFC.MQIACH_HDR_COMPRESSION in channel_info:
                     comp_header = \
                         channel_info[pymqi.CMQCFC.MQIACH_HDR_COMPRESSION]
@@ -1291,7 +1324,7 @@ MQCHSSTATE_COMPRESSING = 1800
                             splunk_event = splunk_event + \
                                 "INDOUBT=%d " % indoubt
 
-                logging.debug("After INDOUBT.")
+                #logging.debug("After INDOUBT.")
 
                 print_xml_single_instance_mode(splunk_host, splunk_event)
 
@@ -1470,7 +1503,7 @@ class ErrorQueueResponseHandler(object):
 
         return values
 
-    def __call__(self, splunk_host, queue_manager_name, queue, msg_data, msg_desc, from_trigger, **kw):
+    def __call__(self, splunk_host, name, queue_manager_name, queue, msg_data, msg_desc, **kw):
 
         splunk_event = ""
         logging.debug("ErrorQueueResponseHandler in  __call__()")
@@ -1480,7 +1513,7 @@ class ErrorQueueResponseHandler(object):
         process = " mqinput(%i):" % os.getpid()
         msg_id = " message_id=%s" % binascii.hexlify(msg_desc["MsgId"])
         message_file_name = ""
-
+        #event_time = None
 
         mqmd_str = ""
         if self.include_mqmd and (msg_desc is not None):
@@ -1494,12 +1527,14 @@ class ErrorQueueResponseHandler(object):
         index_time_o = datetime.datetime.now()
         index_time = "[" + index_time_o.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3] + " " + time.strftime("%z") + "]"
         if self.use_mqmd_puttime:
-            puttime = datetime.datetime.strptime(msg_desc["PutDate"] + " " + msg_desc["PutTime"][0:6], "%Y%m%d %H%M%S")
+            puttime = datetime.datetime.strptime(msg_desc["PutDate"].decode("ascii") + " " + msg_desc["PutTime"][0:6].decode("ascii"), "%Y%m%d %H%M%S")
 
             index_time_o = puttime - datetime.timedelta(seconds=time.timezone)
 
             h_secs = msg_desc["PutTime"][6:]
             index_time = "[" + index_time_o.strftime("%Y-%m-%d %H:%M:%S") + "." + h_secs + "0 " +  time.strftime("%z") + "]"
+            
+            #event_time = str(index_time_o.timestamp())
 
 
         if self.write_messages:
@@ -1660,12 +1695,8 @@ class ErrorQueueResponseHandler(object):
 
             payload = ' extractfields="false" payload="%s"' %  new_msg_data
 
-        #handle trigger
-        if from_trigger:
-            pass
-        else:
-            splunk_event = splunk_event + index_time + host + process + queue_manager_name_str +  queue_str + msg_id + message_file_name +  mqmd_str + payload
-            print_xml_single_instance_mode(splunk_host, splunk_event)
+        splunk_event = splunk_event + index_time + host + process + queue_manager_name_str +  queue_str + msg_id + message_file_name +  mqmd_str + payload
+        print_xml_single_instance_mode(splunk_host, splunk_event, event_time=None, name=name, queue_manager=queue_manager_name,queue=queue)
 
 
 class BrokerJSONResourceStats(object):
@@ -1735,13 +1766,13 @@ class BrokerJSONResourceStats(object):
             self.separate_into_events = True            
 
 
-    def __call__(self, splunk_host, queue_manager_name, queue, msg_data,
-                 msg_desc, from_trigger, **kw):
+    def __call__(self, splunk_host, name, queue_manager_name, queue, msg_data,
+                 msg_desc, **kw):
 
         splunk_event = ""
         #logging.error("default queue handler _call_")
-        mqmd_str = ""
-
+        #mqmd_str = ""
+        #event_time = None
       
         splunk_event = ""
         payload = ""
@@ -1758,17 +1789,18 @@ class BrokerJSONResourceStats(object):
                         " " + time.strftime("%z") + "]"
 
             if self.use_mqmd_puttime:
-                puttime = datetime.datetime.strptime(msg_desc["PutDate"] +
+                puttime = datetime.datetime.strptime(msg_desc["PutDate"].decode("ascii") +
                                                     " " +
-                                                    msg_desc["PutTime"][0:6],
+                                                    msg_desc["PutTime"][0:6].decode("ascii"),
                                                     "%Y%m%d %H%M%S")
                 # puttime = puttime.replace(tzinfo=pytz.timezone("GMT"))
                 localtime = puttime - datetime.timedelta(seconds=time.timezone)
 
-                h_secs = msg_desc["PutTime"][6:]
+                h_secs = msg_desc["PutTime"][6:].decode("ascii")
                 index_time = "[" + localtime.strftime("%Y-%m-%d %H:%M:%S") + \
                             "." + h_secs + "0 " + \
                             time.strftime("%z") + "]"
+                #event_time = str(localtime.timestamp)
 
 
             queue_manager_name_str = " queue_manager=%s" % queue_manager_name
@@ -1780,20 +1812,20 @@ class BrokerJSONResourceStats(object):
                             queue_manager_name_str + queue + \
                             payload
             
-            print_xml_single_instance_mode(splunk_host, splunk_event)
+            print_xml_single_instance_mode(splunk_host, splunk_event, event_time=None, name=name, queue_manager=queue_manager_name,queue=queue)
         else:
             
             if self.add_time_element:
                 index_time = ""
                 if self.use_mqmd_puttime:
-                    puttime = datetime.datetime.strptime(msg_desc["PutDate"] +
+                    puttime = datetime.datetime.strptime(msg_desc["PutDate"].decode("ascii") +
                                                  " " +
-                                                 msg_desc["PutTime"][0:6],
+                                                 msg_desc["PutTime"][0:6].decode("ascii"),
                                                  "%Y%m%d %H%M%S")
                     # puttime = puttime.replace(tzinfo=pytz.timezone("GMT"))
                     localtime = puttime - datetime.timedelta(seconds=time.timezone)
 
-                    h_secs = msg_desc["PutTime"][6:]
+                    h_secs = msg_desc["PutTime"][6:].decode("ascii")
                     index_time = localtime.strftime("%Y-%m-%d %H:%M:%S") + \
                                 "." + h_secs + "0 " + \
                                 time.strftime("%z")
@@ -1831,25 +1863,17 @@ class BrokerJSONResourceStats(object):
                             new_rs = copy.deepcopy(rs)
                             new_rs["resourceType"] = rt["name"]
                             new_rs["resourceStatistics"] = ri
-                            #print("----------------------------")
                             payload = json.dumps(new_rs)
-                            #print("----------------------------")
                             if payload.startswith("{"):
                                 payload = '{"time": "%s",' % index_time + payload[1:]
             
                             splunk_event = splunk_event + payload
-                            print_xml_single_instance_mode(splunk_host, splunk_event)    
+                            print_xml_single_instance_mode(splunk_host, splunk_event, event_time=None, name=name, queue_manager=queue_manager_name,queue=queue)    
                 else:
                 
                     if payload.startswith("{"):
                         payload = '{"time": "%s",' % index_time + payload[1:]
             
                     splunk_event = splunk_event + payload
-                    print_xml_single_instance_mode(splunk_host, splunk_event)    
+                    print_xml_single_instance_mode(splunk_host, splunk_event, event_time=None, name=name, queue_manager=queue_manager_name,queue=queue)    
     
-        # # handle trigger
-        # if from_trigger:
-        #     pass
-        # else:
-        #     print_xml_single_instance_mode(splunk_host, splunk_event)
-
