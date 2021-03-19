@@ -1,4 +1,4 @@
-# splunk-ibm-websphere-mq-add-on - mq_ta
+# splunk-ibm-websphere-mq-add-on - TA-mq
 
 By Hannes Wagener - 2015 
 
@@ -12,17 +12,19 @@ Created from the Splunk modular input examples.
 ## Features
 
 * Simple UI based configuration via Splunk Manager
-* Poll IBM Websphere MQ queues for messages at interval.
+* Poll  IBM Websphere MQ queues for messages at interval or can be triggered from the Websphere MQ trigger monitor(future feature).
 * Poll IBM Websphere MQ Channel Status statistics.
-* Uses regular splunk sourcetypes for the events ("Generic single line", "_json" or "syslog")  
+* Uses regular splunk sourcetypes for the events ("Generic single line" or "syslog") 
 * You can specify multiple queues or channels per data input.  You can specify whether to use a thread per data input or per queue/channel.
 * Automatic thread management.  No need to restart splunk after changes are made to a data input.  This includes adding and removing queues.
 * Includes default response handlers for queue input and channel status input.
 * Includes a response handler for IBM Websphere Message Broker monitoring events.
+* Tested on both Python2 and Python3 in Splunk V8.
 
 ## Dependencies
+* **NOTE: Python3 is now the default for this modular input.  If your environment still uses Python2 you can set the python version in inputs.conf.**
 
-* Splunk 6.0+, 7+, 8+
+* Splunk 6.0+, 7+, 8+ (Python2 or Python3 in Splunk V8).
 * PyMQI 1.5+
 * ctypes library for Python.  **NOTE: Splunk V8 has the ctypes libary installed by default for both Python2 and Python3.  See the dedicated section in the Troubleshooting section on where you can find or build a compatible _ctypes.so**  
 * IBM Websphere MQ Client Libraries V7+
@@ -37,6 +39,7 @@ Created from the Splunk modular input examples.
 * Get and build the PyMQI library.  You can download from here: https://github.com/dsuch/pymqi 
 * Untar the MQ modular input release to your $SPLUNK_HOME/etc/apps directory.
 * Copy the built PyMQI library to the $SPLUNK_HOME/etc/apps/TA-mq/bin folder.
+* On some Linux systems it is required to make a symbolic link the the pymqe.so shared library:  `ln -s pymqe.cpython-36m-x86_64-linux-gnu.so pymqe.so`
 * Copy python c_types library directory to the $SPLUNK_HOME/etc/apps/TA-mq/bin directory.  Splunk's Python interpreter is built with UCS-2.  Make sure you use a compatible _ctypes.so library.  **NOTE:  This step is not required if running Splunk V8+as the ctypes library is included for both Python2 and Python3.**  
 * Ensure that the pymqi and ctypes libraries can be imported when using the Splunk Python interpreter. 
 * Restart Splunk
@@ -69,7 +72,7 @@ serve as examples to your own.
    * `payload_limit=1024` - How many bytes of the payload to include in the splunk event.  Default: 1024 (1kb)  
    * `encode_payload=false/base64/hexbinary` - Encode the payload.   Default: false 
    * `make_payload_printable=false/true` - Escape non text values in the payload.  Default: true
-   * `log_payload_as_event=false/true` - If false do not log the payload as a name/value pair.  Default: false
+   * `log_payload_as_event=false/true` - If false do not log the payload as a name/value pair but rather use the full MQ message as event.  Default: true
    * `payload_quote_char='/"` - Use a specific character to quote the "payload" kv value. Default: " (double quote)
 
 ### DefaultChannelStatusResponseHandler
@@ -97,9 +100,12 @@ Any modular input log errors will get written to $SPLUNK_HOME/var/log/splunk/spl
 * You are using Splunk 6+
 * Look for any errors in $SPLUNK_HOME/var/log/splunk/splunkd.log
 * Enable debug logging by changing the "ExecProcessor" property under "Server logging" to DEBUG.  This will output some debug at various places in the code.  
-Search for the following in Splunk: `index=_internal component=ExecProcessor mq_ta`
-* Ensure that the PyMQI and ctypes libraries can be imported when using the Splunk Python interpreter.   See the "ctypes" specific section below. 
+Search for the following in Splunk: `index=_internal component=ExecProcessor TA-mq`
+* Ensure that the PyMQI and ctypes libraries can be imported when using the Splunk Python interpreter. 
 * Ensure that the IBM Websphere MQ libraries are available to the user which runs Splunk. 
+* Use "ldd" to check if all IBM MQ libraries are available.  eg. run `ldd pymqe.so`
+* If you get an error that reads "pymqe.so not found" - ensure that there is a pymqe.so in the TA-mq/bin/pymqi folder.  There may be a pymqi shared library with a different name.  For example: pymqe.cpython-36m-x86_64-linux-gnu.so.  Create a symbolic link called pymqe.so to this shared library: `ln -s pymqe.cpython-36m-x86_64-linux-gnu.so pymqe.so`
+* If you get an error that reads "pymqe could not be loaded" or "libmqc_r.so not found" then it's likely that the IBM MQ client shared libraries are not available.  Ensure that "/opt/mqm/lib64" is added to the "/etc/ld.so.conf.d/mqm.conf" file(Reload with `sudo ldconfig`) or add the required environment variables to the "splunk" user's profile(use crtmqenv to generate the required environment).   You can use `ldd` to show if all shared library dependencies are met. eg. `ldd pymqe.so`.  
 
 ### How to find a Splunk Python2 compatible "_ctypes.so" (pre Splunk V8)
 The number one problem most people experience with the installation is finding a compatible ctypes library for Splunk's Python2 interpreter(particulary _ctypes.so).  
