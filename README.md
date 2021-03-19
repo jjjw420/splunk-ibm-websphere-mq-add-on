@@ -22,6 +22,7 @@ Created from the Splunk modular input examples.
 * Tested on both Python2 and Python3 in Splunk V8.
 
 ## Dependencies
+* **NOTE: Python3 is now the default for this modular input.  If your environment still uses Python2 you can set the python version in inputs.conf.**
 
 * Splunk 6.0+, 7+, 8+ (Python2 or Python3 in Splunk V8).
 * PyMQI 1.5+
@@ -38,6 +39,7 @@ Created from the Splunk modular input examples.
 * Get and build the PyMQI library.  You can download from here: https://github.com/dsuch/pymqi 
 * Untar the MQ modular input release to your $SPLUNK_HOME/etc/apps directory.
 * Copy the built PyMQI library to the $SPLUNK_HOME/etc/apps/TA-mq/bin folder.
+* On some Linux systems it is required to make a symbolic link the the pymqe.so shared library:  `ln -s pymqe.cpython-36m-x86_64-linux-gnu.so pymqe.so`
 * Copy python c_types library directory to the $SPLUNK_HOME/etc/apps/TA-mq/bin directory.  Splunk's Python interpreter is built with UCS-2.  Make sure you use a compatible _ctypes.so library.  **NOTE:  This step is not required if running Splunk V8+as the ctypes library is included for both Python2 and Python3.**  
 * Ensure that the pymqi and ctypes libraries can be imported when using the Splunk Python interpreter. 
 * Restart Splunk
@@ -101,6 +103,9 @@ Any modular input log errors will get written to $SPLUNK_HOME/var/log/splunk/spl
 Search for the following in Splunk: `index=_internal component=ExecProcessor TA-mq`
 * Ensure that the PyMQI and ctypes libraries can be imported when using the Splunk Python interpreter. 
 * Ensure that the IBM Websphere MQ libraries are available to the user which runs Splunk. 
+* Use "ldd" to check if all IBM MQ libraries are available.  eg. run `ldd pymqe.so`
+* If you get an error that reads "pymqe.so not found" - ensure that there is a pymqe.so in the TA-mq/bin/pymqi folder.  There may be a pymqi shared library with a different name.  For example: pymqe.cpython-36m-x86_64-linux-gnu.so.  Create a symbolic link called pymqe.so to this shared library: `ln -s pymqe.cpython-36m-x86_64-linux-gnu.so pymqe.so`
+* If you get an error that reads "pymqe could not be loaded" or "libmqc_r.so not found" then it's likely that the IBM MQ client shared libraries are not available.  Ensure that "/opt/mqm/lib64" is added to the "/etc/ld.so.conf.d/mqm.conf" file(Reload with `sudo ldconfig`) or add the required environment variables to the "splunk" user's profile(use crtmqenv to generate the required environment).   You can use `ldd` to show if all shared library dependencies are met. eg. `ldd pymqe.so`.  
 
 ### How to find a Splunk Python2 compatible "_ctypes.so" (pre Splunk V8)
 The number one problem most people experience with the installation is finding a compatible ctypes library for Splunk's Python2 interpreter(particulary _ctypes.so).  
