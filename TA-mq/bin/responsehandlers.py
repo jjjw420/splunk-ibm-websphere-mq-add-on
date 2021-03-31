@@ -62,6 +62,9 @@ class DefaultQueueResponseHandler(object):
         payload_limit=1024 - How many bytes of the payload to include
         in the splunk event. Default: 1024 (1kb)
 
+        payload_codepage=ascii/cp037/cp500/utf-8/etc.- Set the payload codepage for conversion to text
+        Default: ascii
+        
         encode_payload=false/base64/hexbinary - Encode the payload.
         Default: false
 
@@ -165,6 +168,11 @@ class DefaultQueueResponseHandler(object):
         else:
             self.make_payload_printable = True
 
+        if "payload_codepage" in self.args:
+            self.payload_codepage = self.args["payload_codepage"].strip()
+        else:
+            self.payload_codepage = "ascii"
+
         if "log_payload_as_event" in self.args:
             if self.args["log_payload_as_event"].lower().strip() == "true":
                 self.log_payload_as_event = True
@@ -241,18 +249,18 @@ class DefaultQueueResponseHandler(object):
         if self.include_payload:
             if self.encode_payload == "base64":
                 payload = payload_el_str % \
-                    str(base64.encodestring(msg_data[:self.payload_limit].decode("ascii")))
+                    str(base64.encodebytes(msg_data[:self.payload_limit]))
             else:
                 if self.encode_payload == "hexbinary":
                     payload = payload_el_str % \
-                        str(binascii.hexlify(msg_data[:self.payload_limit].decode("ascii")))
+                        str(binascii.hexlify(msg_data[:self.payload_limit]))
                 else:
                     if self.make_payload_printable:
                         payload = payload_el_str % \
-                            make_printable(msg_data[:self.payload_limit].decode("ascii"))
+                            make_printable(msg_data[:self.payload_limit].decode(self.payload_codepage))
                     else:
                         payload = payload_el_str % \
-                            msg_data[:self.payload_limit].decode("ascii")
+                            msg_data[:self.payload_limit].decode(self.payload_codepage)
 
         if self.log_payload_as_event:
             queue_manager_name_str = " queue_manager=%s" % queue_manager_name
